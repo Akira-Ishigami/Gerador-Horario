@@ -9,7 +9,7 @@ export const APP_DESCRIPTION =
   "Horária é o gerador de horários escolares que monta a grade da sua escola automaticamente, sem conflitos de professores ou turmas."
 export const APP_DOMAIN = "horaria.app" // placeholder, ajustar quando o domínio for definido
 
-export type PlanId = "bronze" | "prata" | "ouro"
+export type PlanId = "teste" | "bronze" | "prata" | "ouro"
 
 export interface Plan {
   id: PlanId
@@ -31,6 +31,15 @@ export interface Plan {
  * para ganhar mercado, com o Ouro competindo no mesmo patamar dos planos avançados.
  */
 export const PLANS: Plan[] = [
+  {
+    id: "teste",
+    name: "Teste grátis",
+    tagline: "Experimente o gerador com 1 turma, sem cartão de crédito.",
+    maxTurmas: 1,
+    priceMonthly: 0,
+    priceYearly: 0,
+    features: ["1 turma", "Geração automática de horários", "Detecção de conflitos", "Sem cartão de crédito"],
+  },
   {
     id: "bronze",
     name: "Bronze",
@@ -78,5 +87,8 @@ export const PLANS: Plan[] = [
     ],
   },
 ]
+
+// "Teste grátis" não entra na grade de preços (não é um plano pago) — só a UI de planos usa isto.
+export const PAID_PLANS = PLANS.filter((p) => p.id !== "teste")
 
 export const getPlan = (id: PlanId): Plan => PLANS.find((p) => p.id === id)!

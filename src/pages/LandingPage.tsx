@@ -1,20 +1,46 @@
 import { Fragment, useEffect, useState } from "react"
 import { Link } from "react-router-dom"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import {
+  AlertTriangle,
   ArrowRight,
+  Award,
   CalendarCheck2,
   CheckCircle2,
+  Crown,
   Globe,
+  Hourglass,
   LayoutGrid,
+  Medal,
   ShieldCheck,
+  User,
   Users,
   Zap,
 } from "lucide-react"
 import { Navbar } from "@/components/Navbar"
 import { Footer } from "@/components/Footer"
-import { PLANS, APP_NAME } from "@/config/branding"
+import { PAID_PLANS, APP_NAME } from "@/config/branding"
 import { useSEO } from "@/hooks/useSEO"
+
+const PROBLEMS = [
+  {
+    icon: Hourglass,
+    stat: "Dias perdidos",
+    desc: "remontando a planilha inteira toda vez que um professor muda de turma ou disciplina.",
+  },
+  {
+    icon: AlertTriangle,
+    stat: "Conflito tardio",
+    desc: "o choque de horário só aparece depois de publicado — e aí já é tarde para corrigir sem dor de cabeça.",
+  },
+  {
+    icon: User,
+    stat: "1 pessoa só",
+    desc: "geralmente só a coordenação sabe montar a grade do zero, e tudo trava se ela faltar.",
+  },
+]
+
+const PLAN_ICON = { bronze: Medal, prata: Award, ouro: Crown } as const
 
 const HERO_DAYS = ["Seg", "Ter", "Qua", "Qui", "Sex"]
 const HERO_HOURS = ["07:00", "07:50", "08:40", "09:50", "10:40"]
@@ -46,12 +72,7 @@ function Hero() {
 
       <div className="mx-auto grid max-w-7xl gap-16 px-4 py-20 sm:px-6 md:grid-cols-2 md:items-center md:py-28 lg:px-8">
         <motion.div initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-          <span className="inline-flex items-center gap-2 border border-stone-900/15 bg-white px-3 py-1.5 font-landing-mono text-[11px] uppercase tracking-wider text-stone-500">
-            <span className="animate-blink h-1.5 w-1.5 rounded-full bg-signal-500" />
-            Motor de geração automática
-          </span>
-
-          <h1 className="mt-6 font-landing-display text-4xl font-bold leading-[1.08] tracking-tight text-stone-950 sm:text-5xl lg:text-6xl">
+          <h1 className="font-landing-display text-4xl font-bold leading-[1.08] tracking-tight text-stone-950 sm:text-5xl lg:text-6xl">
             Grade horária pronta em{" "}
             <span className="relative inline-block text-brand-600">
               minutos
@@ -82,7 +103,7 @@ function Hero() {
 
           <div className="mt-8 flex flex-wrap items-center gap-4">
             <Link
-              to="/login"
+              to="/login?modo=cadastro"
               className="group inline-flex items-center gap-2 bg-stone-950 px-6 py-3.5 text-sm font-semibold text-white shadow-[4px_4px_0_0_var(--color-brand-500)] transition-all hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_var(--color-brand-500)]"
             >
               Começar agora <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -106,7 +127,18 @@ function Hero() {
           transition={{ duration: 0.7, delay: 0.15 }}
           className="relative"
         >
-          <div className="hud-corner animate-float relative overflow-hidden border border-stone-900/15 bg-white p-5 text-stone-400 shadow-[8px_8px_0_0_rgba(20,20,23,0.06)]">
+          <div
+            onMouseMove={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect()
+              e.currentTarget.style.setProperty("--mx", `${((e.clientX - rect.left) / rect.width) * 100}%`)
+              e.currentTarget.style.setProperty("--my", `${((e.clientY - rect.top) / rect.height) * 100}%`)
+            }}
+            className="hud-corner animate-float group relative overflow-hidden border border-stone-900/15 bg-white p-5 text-stone-400 shadow-[8px_8px_0_0_rgba(20,20,23,0.06)]"
+          >
+            <div
+              className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
+              style={{ background: "radial-gradient(circle at var(--mx, 50%) var(--my, 50%), var(--color-brand-100), transparent 60%)" }}
+            />
             <div className="animate-scan pointer-events-none absolute inset-x-0 top-0 z-10 h-10 bg-linear-to-b from-accent-400/25 via-accent-400/10 to-transparent" />
 
             <div className="mb-4 flex items-center justify-between font-landing-mono text-[10px] uppercase tracking-wider">
@@ -227,24 +259,66 @@ export default function LandingPage() {
     const root = document.documentElement
     const hadDark = root.classList.contains("dark")
     root.classList.remove("dark")
+    // ThemeProvider (ancestor) re-applies "dark" in its own mount effect, which fires
+    // after this one — observer keeps this route forced light regardless of that order.
+    const observer = new MutationObserver(() => {
+      if (root.classList.contains("dark")) root.classList.remove("dark")
+    })
+    observer.observe(root, { attributes: true, attributeFilter: ["class"] })
     return () => {
+      observer.disconnect()
       if (hadDark) root.classList.add("dark")
     }
   }, [])
 
   return (
-    <div className="min-h-screen bg-stone-50 text-stone-600">
+    <div className="min-h-screen bg-stone-50 font-landing-sans text-stone-600">
       <Navbar />
 
       <Hero />
 
+      {/* PROBLEM */}
+      <section id="problema" className="border-y border-stone-900/10 bg-white py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="font-landing-display text-3xl font-bold text-stone-950 sm:text-4xl">
+              Montar horário no olho custa mais caro do que parece.
+            </h2>
+            <p className="mt-3 text-stone-500">
+              A planilha não avisa quando dois horários colidem — só a coordenação percebe, depois de publicado.
+            </p>
+          </div>
+          <div className="mt-12 grid gap-6 md:grid-cols-3">
+            {PROBLEMS.map((p, i) => (
+              <motion.div
+                key={p.stat}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                whileHover={{ y: -4 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: i * 0.05 }}
+                className="group border border-stone-900/12 bg-stone-50 p-6 shadow-[6px_6px_0_0_rgba(20,20,23,0.06)] transition-shadow duration-300 hover:shadow-[8px_8px_0_0_var(--color-signal-500)]"
+              >
+                <motion.div
+                  whileHover={{ rotate: -8, scale: 1.1 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 15 }}
+                  className="inline-block"
+                >
+                  <p.icon className="h-5 w-5 text-signal-500" strokeWidth={2.25} />
+                </motion.div>
+                <p className="mt-4 font-landing-display text-3xl font-bold text-stone-950">{p.stat}</p>
+                <p className="mt-2 text-sm text-stone-500">{p.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* FEATURES */}
       <section id="recursos" className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="font-display text-3xl font-bold text-slate-900 dark:text-white">Tudo que a coordenação precisa</h2>
-          <p className="mt-3 text-slate-600 dark:text-slate-300">
-            Construído para escolas que querem parar de montar horário em planilha.
-          </p>
+          <h2 className="font-landing-display text-3xl font-bold text-stone-950 sm:text-4xl">Tudo que a coordenação precisa</h2>
+          <p className="mt-3 text-stone-500">Construído para escolas que querem parar de montar horário em planilha.</p>
         </div>
         <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map((f, i) => (
@@ -254,32 +328,51 @@ export default function LandingPage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.4, delay: i * 0.05 }}
-              className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-lg dark:border-white/10 dark:bg-slate-900"
+              className="group relative border border-stone-900/12 bg-white p-6 shadow-[6px_6px_0_0_rgba(20,20,23,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[8px_8px_0_0_var(--color-brand-500)]"
             >
-              <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-950 dark:text-brand-300">
-                <f.icon className="h-5 w-5" strokeWidth={2.25} />
+              <span className="absolute right-4 top-4 font-landing-mono text-[10px] text-stone-300">0{i + 1}</span>
+              <div className="flex h-11 w-11 items-center justify-center border border-stone-900/10 bg-stone-50 text-brand-600 transition-colors duration-300 group-hover:bg-brand-600 group-hover:text-white">
+                <f.icon className="h-5 w-5 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6" strokeWidth={2.25} />
               </div>
-              <h3 className="mt-4 font-display text-lg font-semibold text-slate-900 dark:text-white">{f.title}</h3>
-              <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">{f.desc}</p>
+              <h3 className="mt-4 font-landing-display text-lg font-semibold text-stone-950">{f.title}</h3>
+              <p className="mt-2 text-sm text-stone-500">{f.desc}</p>
             </motion.div>
           ))}
         </div>
       </section>
 
       {/* HOW IT WORKS */}
-      <section id="como-funciona" className="bg-slate-50 py-20 dark:bg-slate-900/40">
+      <section id="como-funciona" className="border-y border-stone-900/10 bg-white py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="font-display text-3xl font-bold text-slate-900 dark:text-white">Como funciona</h2>
-            <p className="mt-3 text-slate-600 dark:text-slate-300">Três passos entre a planilha bagunçada e a grade publicada.</p>
+            <h2 className="font-landing-display text-3xl font-bold text-stone-950 sm:text-4xl">Três passos, não três semanas</h2>
+            <p className="mt-3 text-stone-500">Da planilha bagunçada até a grade publicada.</p>
           </div>
-          <div className="mt-12 grid gap-8 md:grid-cols-3">
+          <div className="relative mt-12 grid gap-8 md:grid-cols-3">
+            <motion.div
+              initial={{ scaleX: 0 }}
+              whileInView={{ scaleX: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, ease: "easeInOut" }}
+              style={{ transformOrigin: "left" }}
+              className="absolute left-0 right-0 top-9 hidden h-px bg-brand-200 md:block"
+            />
             {STEPS.map((s, i) => (
-              <div key={s.title} className="relative rounded-2xl border border-slate-200 bg-white p-6 dark:border-white/10 dark:bg-slate-900">
-                <span className="font-display text-4xl font-bold text-brand-100 dark:text-brand-900">{`0${i + 1}`}</span>
-                <h3 className="mt-2 font-display text-lg font-semibold text-slate-900 dark:text-white">{s.title}</h3>
-                <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">{s.desc}</p>
-              </div>
+              <motion.div
+                key={s.title}
+                initial={{ opacity: 0, y: 16 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                whileHover={{ y: -4 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: i * 0.12 }}
+                className="relative border border-stone-900/12 bg-stone-50 p-6 shadow-[6px_6px_0_0_rgba(20,20,23,0.06)] transition-shadow duration-300 hover:shadow-[8px_8px_0_0_var(--color-accent-500)]"
+              >
+                <span className="flex h-7 w-7 items-center justify-center border border-brand-200 bg-white font-landing-mono text-sm font-semibold text-brand-500">
+                  {i + 1}
+                </span>
+                <h3 className="mt-3 font-landing-display text-lg font-semibold text-stone-950">{s.title}</h3>
+                <p className="mt-2 text-sm text-stone-500">{s.desc}</p>
+              </motion.div>
             ))}
           </div>
         </div>
@@ -288,101 +381,165 @@ export default function LandingPage() {
       {/* PRICING */}
       <section id="planos" className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="font-display text-3xl font-bold text-slate-900 dark:text-white">Planos para cada tamanho de escola</h2>
-          <p className="mt-3 text-slate-600 dark:text-slate-300">Comece pequeno e cresça sem trocar de ferramenta.</p>
+          <h2 className="font-landing-display text-3xl font-bold text-stone-950 sm:text-4xl">Planos para cada tamanho de escola</h2>
+          <p className="mt-3 text-stone-500">Comece pequeno e cresça sem trocar de ferramenta.</p>
 
-          <div className="mt-6 inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white p-1 dark:border-white/10 dark:bg-slate-900">
+          <div className="relative mt-6 inline-flex items-center gap-1 border border-stone-900/15 bg-white p-1">
             <button
               type="button"
               onClick={() => setCiclo("mensal")}
-              className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                ciclo === "mensal" ? "bg-brand-600 text-white" : "text-slate-600 dark:text-slate-300"
+              className={`relative px-4 py-1.5 text-sm font-medium transition-colors ${
+                ciclo === "mensal" ? "text-white" : "text-stone-500"
               }`}
             >
-              Mensal
+              {ciclo === "mensal" && (
+                <motion.span
+                  layoutId="toggle-pill"
+                  transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                  className="absolute inset-0 bg-stone-950"
+                />
+              )}
+              <span className="relative z-10">Mensal</span>
             </button>
             <button
               type="button"
               onClick={() => setCiclo("anual")}
-              className={`rounded-full px-4 py-1.5 text-sm font-medium transition-colors ${
-                ciclo === "anual" ? "bg-brand-600 text-white" : "text-slate-600 dark:text-slate-300"
+              className={`relative px-4 py-1.5 text-sm font-medium transition-colors ${
+                ciclo === "anual" ? "text-white" : "text-stone-500"
               }`}
             >
-              Anual <span className="opacity-80">(2 meses grátis)</span>
+              {ciclo === "anual" && (
+                <motion.span
+                  layoutId="toggle-pill"
+                  transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                  className="absolute inset-0 bg-stone-950"
+                />
+              )}
+              <span className="relative z-10">
+                Anual <span className="opacity-70">(2 meses grátis)</span>
+              </span>
             </button>
           </div>
         </div>
 
         <div className="mt-12 grid gap-6 md:grid-cols-3">
-          {PLANS.map((plan) => (
-            <div
+          {PAID_PLANS.map((plan, i) => {
+            const Icon = PLAN_ICON[plan.id as keyof typeof PLAN_ICON]
+            return (
+            <motion.div
               key={plan.id}
-              className={`relative flex flex-col rounded-2xl border p-8 ${
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              whileHover={{ y: -4, scale: 1.01 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4, delay: i * 0.08 }}
+              className={`relative flex flex-col bg-white p-8 transition-shadow duration-300 ${
                 plan.highlight
-                  ? "border-brand-500 bg-white shadow-2xl shadow-brand-500/20 ring-2 ring-brand-500 dark:bg-slate-900"
-                  : "border-slate-200 bg-white dark:border-white/10 dark:bg-slate-900"
+                  ? "border border-brand-500 shadow-[8px_8px_0_0_var(--color-brand-500)]"
+                  : "border border-stone-900/12 shadow-[6px_6px_0_0_rgba(20,20,23,0.06)] hover:shadow-[8px_8px_0_0_rgba(20,20,23,0.12)]"
               }`}
             >
               {plan.highlight && (
-                <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-brand-600 px-3 py-1 text-xs font-semibold text-white shadow-lg">
+                <span className="absolute -top-3 left-6 flex items-center gap-1.5 border border-brand-600 bg-brand-600 px-3 py-1 font-landing-mono text-[10px] uppercase tracking-wider text-white">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
                   Mais popular
                 </span>
               )}
-              <h3 className="font-display text-xl font-bold text-slate-900 dark:text-white">{plan.name}</h3>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">{plan.tagline}</p>
-              <div className="mt-6 flex items-baseline gap-1">
-                <span className="font-display text-4xl font-bold text-slate-900 dark:text-white">
-                  {formatBRL(ciclo === "mensal" ? plan.priceMonthly : plan.priceYearly / 12)}
-                </span>
-                <span className="text-sm text-slate-500 dark:text-slate-400">/mês</span>
+              <div className="flex h-10 w-10 items-center justify-center border border-stone-900/10 bg-stone-50 text-brand-600">
+                <Icon className="h-5 w-5" strokeWidth={2.25} />
+              </div>
+              <h3 className="mt-4 font-landing-display text-xl font-bold text-stone-950">{plan.name}</h3>
+              <p className="mt-1 text-sm text-stone-500">{plan.tagline}</p>
+              <div className="mt-6 flex items-baseline gap-1 overflow-hidden">
+                <AnimatePresence mode="popLayout" initial={false}>
+                  <motion.span
+                    key={ciclo}
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -12 }}
+                    transition={{ duration: 0.25 }}
+                    className="font-landing-display text-4xl font-bold text-stone-950"
+                  >
+                    {formatBRL(ciclo === "mensal" ? plan.priceMonthly : plan.priceYearly / 12)}
+                  </motion.span>
+                </AnimatePresence>
+                <span className="text-sm text-stone-500">/mês</span>
               </div>
               {ciclo === "anual" && (
-                <p className="mt-1 text-xs text-emerald-600 dark:text-emerald-400">
+                <p className="mt-1 font-landing-mono text-xs text-emerald-600">
                   {formatBRL(plan.priceYearly)} cobrados uma vez por ano
                 </p>
               )}
               <ul className="mt-6 space-y-3">
                 {plan.features.map((feat) => (
-                  <li key={feat} className="flex items-start gap-2 text-sm text-slate-600 dark:text-slate-300">
+                  <li key={feat} className="flex items-start gap-2 text-sm text-stone-600">
                     <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" />
                     {feat}
                   </li>
                 ))}
               </ul>
               <Link
-                to="/login"
-                className={`mt-8 inline-flex items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
+                to="/login?modo=cadastro"
+                className={`mt-8 inline-flex items-center justify-center px-4 py-3 text-sm font-semibold transition-colors ${
                   plan.highlight
-                    ? "bg-brand-600 text-white hover:bg-brand-700"
-                    : "border border-slate-300 text-slate-700 hover:border-brand-400 hover:text-brand-600 dark:border-slate-700 dark:text-slate-200"
+                    ? "bg-stone-950 text-white hover:bg-stone-800"
+                    : "border border-stone-900/15 text-stone-700 hover:border-brand-400 hover:text-brand-600"
                 }`}
               >
                 Escolher {plan.name}
               </Link>
-            </div>
-          ))}
+            </motion.div>
+            )
+          })}
         </div>
-        <p className="mt-6 text-center text-xs text-slate-400 dark:text-slate-500">
+
+        <p className="mt-6 text-center font-landing-mono text-xs text-stone-400">
           Pagamento recorrente será processado via Mercado Pago (integração em breve). Cancele quando quiser.
         </p>
       </section>
 
       {/* CTA */}
-      <section className="mx-auto max-w-5xl px-4 pb-20 sm:px-6 lg:px-8">
-        <div className="relative overflow-hidden rounded-3xl bg-slate-900 px-8 py-14 text-center shadow-2xl">
-          <div className="absolute -top-16 -right-16 h-56 w-56 rounded-full bg-brand-500/30 blur-3xl" />
-          <div className="absolute -bottom-16 -left-16 h-56 w-56 rounded-full bg-accent-400/20 blur-3xl" />
-          <h2 className="relative font-display text-3xl font-bold text-white">Pronto para acabar com a planilha de horários?</h2>
-          <p className="relative mx-auto mt-3 max-w-xl text-slate-300">
-            Crie sua conta e gere a primeira grade horária da sua escola ainda hoje.
-          </p>
-          <Link
-            to="/login"
-            className="relative mt-8 inline-flex items-center gap-2 rounded-xl bg-white px-6 py-3.5 text-sm font-semibold text-slate-900 shadow-xl transition-transform hover:scale-[1.03]"
+      <section className="mx-auto max-w-5xl px-4 pb-24 sm:px-6 lg:px-8">
+        <motion.div
+          initial={{ opacity: 0, y: 24, scale: 0.98 }}
+          whileInView={{ opacity: 1, y: 0, scale: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="relative overflow-hidden border border-stone-900/15 bg-white px-8 py-14 text-center shadow-[10px_10px_0_0_var(--color-brand-500)]"
+        >
+          <div className="bg-grid pointer-events-none absolute inset-0 -z-10 text-stone-900/6" />
+          <motion.h2
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+            className="relative font-landing-display text-3xl font-bold text-stone-950 sm:text-4xl"
           >
-            Começar gratuitamente <ArrowRight className="h-4 w-4" />
-          </Link>
-        </div>
+            Pronto para acabar com a planilha de horários?
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.4, delay: 0.18 }}
+            className="relative mx-auto mt-3 max-w-xl text-stone-500"
+          >
+            Crie sua conta e gere a primeira grade horária da sua escola ainda hoje.
+          </motion.p>
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.4, delay: 0.26 }}
+          >
+            <Link
+              to="/login?modo=cadastro"
+              className="group relative mt-8 inline-flex items-center gap-2 bg-stone-950 px-6 py-3.5 text-sm font-semibold text-white shadow-[4px_4px_0_0_var(--color-brand-500)] transition-all hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_var(--color-brand-500)]"
+            >
+              Começar gratuitamente <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+            </Link>
+          </motion.div>
+        </motion.div>
       </section>
 
       <Footer />

@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/* Tailwind v4 usa prefers-color-scheme por padrão — isso força o "dark:" a
+   responder só à classe .dark no <html> (o que o ThemeToggle controla),
+   ignorando o tema do sistema operacional. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: "Sora", "Inter", system-ui, sans-serif;
@@ -35,6 +40,7 @@
   --animate-blink: blink 1.1s step-end infinite;
   --animate-scan: scan 2.4s cubic-bezier(0.65, 0, 0.35, 1) infinite;
   --animate-orbit: orbit 22s linear infinite;
+  --animate-shimmer: shimmer 3.2s ease-in-out infinite;
 
   @keyframes float {
     0%, 100% { transform: translateY(0); }
@@ -57,6 +63,10 @@
   @keyframes orbit {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
+  }
+  @keyframes shimmer {
+    0% { transform: translateX(-120%); }
+    100% { transform: translateX(420%); }
   }
 }
 
@@ -138,5 +148,21 @@ h1, h2, h3, h4, .font-display {
     position: absolute;
     inset: 0;
     width: 100%;
+  }
+
+  /*
+   * Marca d'água do plano Teste grátis na impressão/exportação. Vive só
+   * aqui (media print) como padrão repetido em background-image, não como
+   * texto solto no DOM — apagar precisa achar e desabilitar esta regra de
+   * CSS, não só deletar uma div pelo inspecionar elemento.
+   */
+  .watermark-teste::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+    background-repeat: repeat;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='420' height='220'%3E%3Ctext x='10' y='120' font-size='22' font-family='Arial, sans-serif' font-weight='bold' fill='rgba(0,0,0,0.13)' transform='rotate(-28 210 110)'%3EHOR%C3%81RIA %E2%80%A2 PLANO TESTE%3C/text%3E%3C/svg%3E");
   }
 }

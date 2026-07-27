@@ -1,8 +1,14 @@
 import { Link } from "react-router-dom"
-import { Crown, Medal, Award } from "lucide-react"
+import { Crown, Medal, Award, Sparkles } from "lucide-react"
 import { getPlan, type PlanId } from "@/config/branding"
 
 const PLAN_STYLE: Record<PlanId, { icon: typeof Crown; ring: string; text: string; bar: string }> = {
+  teste: {
+    icon: Sparkles,
+    ring: "ring-brand-400/40",
+    text: "text-brand-600 dark:text-brand-400",
+    bar: "bg-brand-500",
+  },
   bronze: {
     icon: Medal,
     ring: "ring-amber-400/40",

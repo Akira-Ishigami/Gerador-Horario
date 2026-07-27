@@ -69,36 +69,52 @@ export const PROFESSORES: Professor[] = [
   { id: "p6", nome: "Fábio Rocha", disciplinaIds: ["edf"] },
 ]
 
+export type Periodo = "matutino" | "vespertino" | "noturno" | "integral"
+
+export const PERIODOS: Periodo[] = ["matutino", "vespertino", "noturno", "integral"]
+
 export interface Turma {
   id: string
   nome: string
-  turno: "manha" | "tarde" | "noite"
+  turno: Periodo
   /** quantidade de aulas semanais por disciplina */
   cargaHoraria: Record<string, number>
+  /**
+   * Dias da semana em que a turma tem aula. Capturado no wizard de
+   * configuração, mas o gerador/grade ainda considera só Segunda a Sexta
+   * (DIAS_SEMANA) — variar isso por turma é lógica pra uma próxima etapa.
+   */
+  diasFuncionamento: DiaSemana[]
 }
 
 export const TURMAS_INICIAIS: Turma[] = [
   {
     id: "t1",
     nome: "6º Ano A",
-    turno: "manha",
+    turno: "matutino",
     cargaHoraria: { mat: 5, port: 5, cien: 3, hist: 2, geo: 2, ing: 2, edf: 2, arte: 1 },
+    diasFuncionamento: ["Seg", "Ter", "Qua", "Qui", "Sex"],
   },
   {
     id: "t2",
     nome: "6º Ano B",
-    turno: "manha",
+    turno: "matutino",
     cargaHoraria: { mat: 5, port: 5, cien: 3, hist: 2, geo: 2, ing: 2, edf: 2, arte: 1 },
+    diasFuncionamento: ["Seg", "Ter", "Qua", "Qui", "Sex"],
   },
   {
     id: "t3",
     nome: "7º Ano A",
-    turno: "tarde",
+    turno: "vespertino",
     cargaHoraria: { mat: 4, port: 4, cien: 3, hist: 3, geo: 2, ing: 2, edf: 2, arte: 1 },
+    diasFuncionamento: ["Seg", "Ter", "Qua", "Qui", "Sex"],
   },
 ]
 
+/** Usado pelo gerador/grade — mantido em 5 dias por enquanto. */
 export const DIAS_SEMANA = ["Seg", "Ter", "Qua", "Qui", "Sex"] as const
-export type DiaSemana = (typeof DIAS_SEMANA)[number]
+/** Usado só no wizard de configuração (inclui Sábado). */
+export const DIAS_SEMANA_COMPLETA = [...DIAS_SEMANA, "Sáb"] as const
+export type DiaSemana = (typeof DIAS_SEMANA_COMPLETA)[number]
 
 export const HORARIOS = ["07:00", "07:50", "08:40", "09:50", "10:40"] as const

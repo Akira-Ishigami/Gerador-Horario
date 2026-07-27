@@ -1,16 +1,17 @@
 import { useState, type FormEvent } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { X } from "lucide-react"
+import { PERIODOS, type Periodo } from "@/data/mockData"
 
 interface NovaTurmaModalProps {
   open: boolean
   onClose: () => void
-  onCreate: (nome: string, turno: "manha" | "tarde" | "noite") => { ok: true } | { ok: false; error: string }
+  onCreate: (nome: string, turno: Periodo) => { ok: true } | { ok: false; error: string }
 }
 
 export function NovaTurmaModal({ open, onClose, onCreate }: NovaTurmaModalProps) {
   const [nome, setNome] = useState("")
-  const [turno, setTurno] = useState<"manha" | "tarde" | "noite">("manha")
+  const [turno, setTurno] = useState<Periodo>("matutino")
   const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = (e: FormEvent) => {
@@ -22,7 +23,7 @@ export function NovaTurmaModal({ open, onClose, onCreate }: NovaTurmaModalProps)
       return
     }
     setNome("")
-    setTurno("manha")
+    setTurno("matutino")
     setError(null)
     onClose()
   }
@@ -71,9 +72,9 @@ export function NovaTurmaModal({ open, onClose, onCreate }: NovaTurmaModalProps)
                 />
               </div>
               <div>
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Turno</span>
-                <div className="mt-1 grid grid-cols-3 gap-2">
-                  {(["manha", "tarde", "noite"] as const).map((t) => (
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Período</span>
+                <div className="mt-1 grid grid-cols-2 gap-2">
+                  {PERIODOS.map((t) => (
                     <button
                       key={t}
                       type="button"

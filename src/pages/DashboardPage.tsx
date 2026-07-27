@@ -2,14 +2,17 @@ import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import {
   AlertTriangle,
+  ArrowUpCircle,
+  BookOpen,
   CalendarClock,
+  GraduationCap,
   LogOut,
   Minus,
   Plus,
   Printer,
   Shield,
   Sparkles,
-  Trash2,
+  Timer,
   Users as UsersIcon,
 } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
@@ -17,11 +20,86 @@ import { useData } from "@/context/DataContext"
 import { ThemeToggle } from "@/components/ThemeToggle"
 import { PlanBadge } from "@/components/PlanBadge"
 import { ScheduleGrid } from "@/components/ScheduleGrid"
-import { NovaTurmaModal } from "@/components/NovaTurmaModal"
-import { DISCIPLINAS, MOCK_USERS, PROFESSORES } from "@/data/mockData"
+import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard"
+import { TurmasManager } from "@/components/dashboard/TurmasManager"
+import { MateriasManager } from "@/components/dashboard/MateriasManager"
+import { ProfessoresManager } from "@/components/dashboard/ProfessoresManager"
+import { MOCK_USERS } from "@/data/mockData"
 import { gerarHorarios, type GeneratedSchedule } from "@/lib/scheduleGenerator"
 import { APP_NAME } from "@/config/branding"
 import { useSEO } from "@/hooks/useSEO"
+
+const NAV_ITEMS = [
+  { id: "horarios", label: "Horários", icon: Sparkles },
+  { id: "turmas", label: "Turmas", icon: UsersIcon },
+  { id: "materias", label: "Matérias", icon: BookOpen },
+  { id: "professores", label: "Professores", icon: GraduationCap },
+] as const
+
+type TabId = (typeof NAV_ITEMS)[number]["id"] | "admin"
+
+const FREE_GEN_COOLDOWN_MS = 36 * 60 * 60 * 1000
+const FREE_GEN_MAX_USES = 2
+
+interface FreeGenState {
+  windowEnd: number
+  usesLeft: number
+}
+
+function freeGenKey(userId: string) {
+  return `horaria_free_gen_${userId}`
+}
+
+/**
+ * Plano Teste: até FREE_GEN_MAX_USES gerações dentro de uma janela de 36h.
+ * Ao expirar a janela (ou na primeira vez), reseta a contagem.
+ */
+function loadFreeGenState(userId: string): FreeGenState {
+  const raw = localStorage.getItem(freeGenKey(userId))
+  const parsed: FreeGenState | null = raw ? JSON.parse(raw) : null
+  if (!parsed || parsed.windowEnd < Date.now()) {
+    const fresh: FreeGenState = { windowEnd: Date.now() + FREE_GEN_COOLDOWN_MS, usesLeft: FREE_GEN_MAX_USES }
+    localStorage.setItem(freeGenKey(userId), JSON.stringify(fresh))
+    return fresh
+  }
+  return parsed
+}
+
+function useFreeGenCooldown(userId: string) {
+  const [, setTick] = useState(0)
+
+  useEffect(() => {
+    if (!userId) return
+    const id = setInterval(() => setTick((t) => t + 1), 1000)
+    return () => clearInterval(id)
+  }, [userId])
+
+  if (!userId) {
+    return { remainingMs: 0, usesLeft: FREE_GEN_MAX_USES, registrarGeracao: () => true }
+  }
+
+  const state = loadFreeGenState(userId)
+  const remainingMs = Math.max(0, state.windowEnd - Date.now())
+
+  const registrarGeracao = () => {
+    const current = loadFreeGenState(userId)
+    if (current.usesLeft <= 0) return false
+    const next: FreeGenState = { ...current, usesLeft: current.usesLeft - 1 }
+    localStorage.setItem(freeGenKey(userId), JSON.stringify(next))
+    setTick((t) => t + 1)
+    return true
+  }
+
+  return { remainingMs, usesLeft: state.usesLeft, registrarGeracao }
+}
+
+function formatCountdown(ms: number) {
+  const totalSeconds = Math.floor(ms / 1000)
+  const h = Math.floor(totalSeconds / 3600)
+  const m = Math.floor((totalSeconds % 3600) / 60)
+  const s = totalSeconds % 60
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`
+}
 
 export default function DashboardPage() {
   useSEO({
@@ -32,12 +110,19 @@ export default function DashboardPage() {
   })
 
   const { user, logout } = useAuth()
-  const { turmas, addTurma, removeTurma, updateCargaHoraria, limiteAtingido, maxTurmas } = useData()
+  const { turmas, updateCargaHoraria, professores, disciplinas } = useData()
+  const { remainingMs: freeGenRemaining, usesLeft: freeGenUsesLeft, registrarGeracao } = useFreeGenCooldown(
+    user?.plan === "teste" ? user.id : "",
+  )
+
+  const [onboarded, setOnboarded] = useState(() => {
+    if (!user) return true
+    return localStorage.getItem(`horaria_onboarded_${user.id}`) === "true"
+  })
 
   const [selectedId, setSelectedId] = useState<string | null>(turmas[0]?.id ?? null)
   const [schedule, setSchedule] = useState<GeneratedSchedule | null>(null)
-  const [modalOpen, setModalOpen] = useState(false)
-  const [tab, setTab] = useState<"gerador" | "admin">("gerador")
+  const [tab, setTab] = useState<TabId>("horarios")
 
   useEffect(() => {
     if (!selectedId && turmas.length > 0) setSelectedId(turmas[0].id)
@@ -49,30 +134,61 @@ export default function DashboardPage() {
   const selectedTurma = turmas.find((t) => t.id === selectedId) ?? null
 
   const handleGerar = () => {
-    const result = gerarHorarios(turmas, PROFESSORES)
+    if (user?.plan === "teste" && !registrarGeracao()) return
+    const result = gerarHorarios(turmas, professores)
     setSchedule(result)
+  }
+
+  const handleMoveAssignment = (fromDia: number, fromPeriodo: number, toDia: number, toPeriodo: number) => {
+    if (!selectedTurma) return
+    setSchedule((prev) => {
+      if (!prev) return prev
+      const grade = prev.grades[selectedTurma.id]
+      if (!grade) return prev
+      const novaGrade = grade.map((linha) => [...linha])
+      const origem = novaGrade[fromDia][fromPeriodo]
+      const destino = novaGrade[toDia][toPeriodo]
+      novaGrade[toDia][toPeriodo] = origem
+      novaGrade[fromDia][fromPeriodo] = destino
+      return { ...prev, grades: { ...prev.grades, [selectedTurma.id]: novaGrade } }
+    })
   }
 
   const handlePrint = () => window.print()
 
   if (!user) return null
 
+  if (!onboarded && turmas.length === 0) {
+    return (
+      <OnboardingWizard
+        onFinish={() => {
+          localStorage.setItem(`horaria_onboarded_${user.id}`, "true")
+          setOnboarded(true)
+        }}
+      />
+    )
+  }
+
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
+    <div className="relative min-h-screen bg-slate-50 dark:bg-slate-950">
+      <div className="bg-grid pointer-events-none fixed inset-0 -z-10 text-slate-900/3 dark:text-white/3" />
+      <div className="pointer-events-none fixed -top-32 right-0 -z-10 h-96 w-96 rounded-full bg-brand-400/10 blur-3xl dark:bg-brand-500/20" />
+      <div className="pointer-events-none fixed bottom-0 -left-32 -z-10 hidden h-96 w-96 rounded-full bg-accent-500/0 blur-3xl dark:block dark:bg-accent-500/10" />
+
       {/* Top bar */}
-      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 backdrop-blur dark:border-white/10 dark:bg-slate-950/90 print:hidden">
+      <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-950/90 print:hidden">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link to="/" className="flex items-center gap-2 font-display text-lg font-bold text-slate-900 dark:text-white">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-brand-500 to-accent-500 text-white shadow-lg shadow-brand-500/30">
+          <Link to="/" className="group flex items-center gap-2 font-display text-lg font-bold text-slate-900 dark:text-white">
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-brand-500 to-accent-500 text-white shadow-lg shadow-brand-500/30 transition-transform duration-300 group-hover:rotate-6">
               <CalendarClock className="h-5 w-5" strokeWidth={2.25} />
             </span>
             {APP_NAME}
           </Link>
 
           <div className="flex items-center gap-3">
-            <div className="hidden items-center gap-2 rounded-full border border-slate-200 py-1 pl-1 pr-3 text-sm dark:border-white/10 sm:flex">
+            <div className="hidden items-center gap-2 rounded-full border border-slate-200 py-1 pl-1 pr-3 text-sm shadow-sm dark:border-white/10 sm:flex">
               <span
-                className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold text-white"
+                className="flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold text-white ring-2 ring-white dark:ring-slate-900"
                 style={{ backgroundColor: user.avatarColor }}
               >
                 {user.name.charAt(0)}
@@ -93,217 +209,232 @@ export default function DashboardPage() {
             <button
               type="button"
               onClick={logout}
-              className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:border-rose-300 hover:text-rose-600 dark:border-slate-700 dark:text-slate-300"
+              className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-rose-300 hover:text-rose-600 dark:border-slate-700 dark:text-slate-300"
             >
               <LogOut className="h-4 w-4" /> Sair
             </button>
           </div>
         </div>
 
-        {user.role === "admin" && (
-          <div className="mx-auto max-w-7xl px-4 pb-2 sm:px-6 lg:px-8">
-            <div className="flex gap-1 border-t border-slate-100 pt-2 dark:border-white/5">
-              {(
-                [
-                  { id: "gerador", label: "Gerador de horários" },
-                  { id: "admin", label: "Administração" },
-                ] as const
-              ).map((t) => (
-                <button
-                  key={t.id}
-                  onClick={() => setTab(t.id)}
-                  className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                    tab === t.id
-                      ? "bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300"
-                      : "text-slate-500 hover:text-slate-700 dark:text-slate-400"
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {tab === "admin" && user.role === "admin" ? (
-          <AdminPanel />
-        ) : (
-          <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
-            {/* Sidebar */}
-            <aside className="space-y-4 print:hidden">
-              <PlanBadge planId={user.plan} turmasUsadas={turmas.length} />
+        <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
+          {/* Sidebar: navegação */}
+          <aside className="space-y-4 print:hidden">
+            <PlanBadge planId={user.plan} turmasUsadas={turmas.length} />
 
-              <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-white/10 dark:bg-slate-900">
-                <div className="mb-3 flex items-center justify-between">
-                  <h2 className="font-display text-sm font-semibold text-slate-700 dark:text-slate-200">Turmas</h2>
+            {user.plan === "teste" && (
+              <div className="rounded-2xl border border-brand-200 bg-brand-50 p-4 shadow-sm dark:border-brand-900 dark:bg-brand-950/40">
+                <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-brand-700 dark:text-brand-300">
+                  <span className="flex items-center gap-2">
+                    <Timer className="h-3.5 w-3.5" /> Gerações grátis
+                  </span>
+                  <span className="rounded-full bg-brand-600 px-2 py-0.5 text-white">{freeGenUsesLeft}/{FREE_GEN_MAX_USES}</span>
+                </div>
+                {freeGenUsesLeft <= 0 ? (
+                  <>
+                    <p className="mt-1 font-display text-2xl font-bold tabular-nums text-brand-900 dark:text-brand-200">
+                      {formatCountdown(freeGenRemaining)}
+                    </p>
+                    <p className="mt-2 text-xs text-brand-700/80 dark:text-brand-300/80">
+                      Limite atingido — libera {FREE_GEN_MAX_USES} novas gerações quando o tempo acabar.
+                    </p>
+                  </>
+                ) : (
+                  <p className="mt-2 text-xs text-brand-700/80 dark:text-brand-300/80">
+                    No plano Teste grátis você tem {FREE_GEN_MAX_USES} gerações a cada 36h.
+                  </p>
+                )}
+                <Link
+                  to="/#planos"
+                  className="mt-3 flex items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-brand-700"
+                >
+                  <ArrowUpCircle className="h-3.5 w-3.5" /> Fazer upgrade de plano
+                </Link>
+              </div>
+            )}
+
+            <nav className="space-y-1 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm dark:border-white/10 dark:bg-slate-900">
+              {NAV_ITEMS.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setTab(item.id)}
+                  className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+                    tab === item.id
+                      ? "bg-brand-600 text-white shadow-sm shadow-brand-600/30"
+                      : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/5"
+                  }`}
+                >
+                  <item.icon className="h-4 w-4" />
+                  {item.label}
+                </button>
+              ))}
+              {user.role === "admin" && (
+                <button
+                  type="button"
+                  onClick={() => setTab("admin")}
+                  className={`flex w-full items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+                    tab === "admin"
+                      ? "bg-brand-600 text-white shadow-sm shadow-brand-600/30"
+                      : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/5"
+                  }`}
+                >
+                  <Shield className="h-4 w-4" />
+                  Administração
+                </button>
+              )}
+            </nav>
+          </aside>
+
+          {/* Conteúdo */}
+          <section className="space-y-6">
+            {tab === "horarios" && (
+              <>
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-900 print:hidden">
+                  <div className="flex flex-wrap gap-1.5">
+                    {turmas.map((t) => (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => setSelectedId(t.id)}
+                        className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                          selectedId === t.id
+                            ? "bg-brand-600 text-white shadow-sm shadow-brand-600/30"
+                            : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10"
+                        }`}
+                      >
+                        {t.nome}
+                      </button>
+                    ))}
+                    {turmas.length === 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setTab("turmas")}
+                        className="text-sm text-slate-400 underline underline-offset-2 hover:text-brand-600"
+                      >
+                        Nenhuma turma — crie uma em "Turmas"
+                      </button>
+                    )}
+                  </div>
                   <button
                     type="button"
-                    onClick={() => setModalOpen(true)}
-                    disabled={limiteAtingido}
-                    className="flex items-center gap-1 rounded-lg bg-brand-600 px-2.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-40"
+                    onClick={handleGerar}
+                    disabled={turmas.length === 0 || (user.plan === "teste" && freeGenUsesLeft <= 0)}
+                    className="group flex shrink-0 items-center justify-center gap-2 rounded-xl bg-linear-to-r from-brand-600 to-accent-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-600/30 transition-all hover:scale-[1.01] hover:shadow-xl hover:shadow-brand-600/40 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
                   >
-                    <Plus className="h-3.5 w-3.5" /> Nova
+                    <Sparkles className="h-4 w-4 transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110" />{" "}
+                    Gerar horários
                   </button>
                 </div>
 
-                <ul className="space-y-1.5">
-                  {turmas.map((t) => (
-                    <li key={t.id}>
-                      <button
-                        type="button"
-                        onClick={() => setSelectedId(t.id)}
-                        className={`group flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition-colors ${
-                          selectedId === t.id
-                            ? "bg-brand-600 text-white"
-                            : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/5"
-                        }`}
-                      >
-                        <span>
-                          <span className="block font-medium">{t.nome}</span>
-                          <span className={`block text-xs capitalize ${selectedId === t.id ? "text-brand-100" : "text-slate-400"}`}>
-                            {t.turno}
-                          </span>
-                        </span>
-                        <Trash2
-                          className={`h-4 w-4 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 ${
-                            selectedId === t.id ? "text-white hover:text-rose-200" : "text-slate-400 hover:text-rose-500"
-                          }`}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            removeTurma(t.id)
-                          }}
-                        />
-                      </button>
-                    </li>
-                  ))}
-                  {turmas.length === 0 && (
-                    <p className="px-1 py-2 text-sm text-slate-400">Nenhuma turma cadastrada ainda.</p>
-                  )}
-                </ul>
-                {maxTurmas !== null && (
-                  <p className="mt-3 text-xs text-slate-400">
-                    {turmas.length} de {maxTurmas} turmas usadas neste plano.
-                  </p>
+                {schedule && schedule.conflitos.length > 0 && (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
+                    <div className="mb-1 flex items-center gap-2 font-semibold">
+                      <AlertTriangle className="h-4 w-4" /> {schedule.conflitos.length} conflito(s) encontrado(s)
+                    </div>
+                    <ul className="ml-6 list-disc space-y-0.5">
+                      {schedule.conflitos.map((c) => (
+                        <li key={c}>{c}</li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
-              </div>
 
-              <button
-                type="button"
-                onClick={handleGerar}
-                disabled={turmas.length === 0}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-600 to-accent-500 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-600/30 transition-transform hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <Sparkles className="h-4 w-4" /> Gerar horários
-              </button>
-            </aside>
-
-            {/* Main content */}
-            <section className="space-y-6">
-              {schedule && schedule.conflitos.length > 0 && (
-                <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
-                  <div className="mb-1 flex items-center gap-2 font-semibold">
-                    <AlertTriangle className="h-4 w-4" /> {schedule.conflitos.length} conflito(s) encontrado(s)
-                  </div>
-                  <ul className="ml-6 list-disc space-y-0.5">
-                    {schedule.conflitos.map((c) => (
-                      <li key={c}>{c}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {selectedTurma ? (
-                <>
-                  <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-slate-900 print:hidden">
-                    <div className="mb-3 flex items-center justify-between">
-                      <h2 className="font-display text-base font-semibold text-slate-800 dark:text-white">
-                        Carga horária semanal · {selectedTurma.nome}
-                      </h2>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                      {DISCIPLINAS.map((d) => {
-                        const valor = selectedTurma.cargaHoraria[d.id] ?? 0
-                        return (
-                          <div
-                            key={d.id}
-                            className="rounded-xl border border-slate-100 p-3 dark:border-white/5"
-                            style={{ borderLeft: `3px solid ${d.cor}` }}
-                          >
-                            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{d.nome}</p>
-                            <div className="mt-1.5 flex items-center justify-between">
-                              <button
-                                type="button"
-                                onClick={() => updateCargaHoraria(selectedTurma.id, d.id, valor - 1)}
-                                className="flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-white/5"
-                              >
-                                <Minus className="h-3 w-3" />
-                              </button>
-                              <span className="font-display text-sm font-semibold text-slate-800 dark:text-white">{valor}</span>
-                              <button
-                                type="button"
-                                onClick={() => updateCargaHoraria(selectedTurma.id, d.id, valor + 1)}
-                                className="flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-white/5"
-                              >
-                                <Plus className="h-3 w-3" />
-                              </button>
+                {selectedTurma ? (
+                  <>
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900 print:hidden">
+                      <div className="mb-3 flex items-center justify-between">
+                        <h2 className="font-display text-base font-semibold text-slate-800 dark:text-white">
+                          Carga horária semanal · {selectedTurma.nome}
+                        </h2>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                        {disciplinas.map((d) => {
+                          const valor = selectedTurma.cargaHoraria[d.id] ?? 0
+                          return (
+                            <div
+                              key={d.id}
+                              className="rounded-xl border border-slate-100 p-3 transition-all hover:shadow-md dark:border-white/10 dark:hover:bg-white/5"
+                              style={{ borderLeft: `3px solid ${d.cor}` }}
+                            >
+                              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{d.nome}</p>
+                              <div className="mt-1.5 flex items-center justify-between">
+                                <button
+                                  type="button"
+                                  onClick={() => updateCargaHoraria(selectedTurma.id, d.id, valor - 1)}
+                                  className="flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-white/5"
+                                >
+                                  <Minus className="h-3 w-3" />
+                                </button>
+                                <span className="font-display text-sm font-semibold text-slate-800 dark:text-white">{valor}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => updateCargaHoraria(selectedTurma.id, d.id, valor + 1)}
+                                  className="flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-white/5"
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </button>
+                              </div>
                             </div>
-                          </div>
-                        )
-                      })}
+                          )
+                        })}
+                      </div>
                     </div>
-                  </div>
 
-                  <div id="print-area">
-                    <div className="mb-3 flex items-center justify-between">
-                      <h2 className="font-display text-base font-semibold text-slate-800 dark:text-white">
-                        Grade horária · {selectedTurma.nome}
-                      </h2>
-                      <button
-                        type="button"
-                        onClick={handlePrint}
-                        className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-brand-400 hover:text-brand-600 dark:border-slate-700 dark:text-slate-300 print:hidden"
-                      >
-                        <Printer className="h-3.5 w-3.5" /> Exportar / imprimir
-                      </button>
+                    <div id="print-area" className={user.plan === "teste" ? "watermark-teste" : undefined}>
+                      <div className="mb-3 flex items-center justify-between">
+                        <h2 className="font-display text-base font-semibold text-slate-800 dark:text-white">
+                          Grade horária · {selectedTurma.nome}
+                        </h2>
+                        <button
+                          type="button"
+                          onClick={handlePrint}
+                          className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-brand-400 hover:text-brand-600 dark:border-slate-700 dark:text-slate-300 print:hidden"
+                        >
+                          <Printer className="h-3.5 w-3.5" /> Exportar / imprimir
+                        </button>
+                      </div>
+                      <ScheduleGrid grade={schedule?.grades[selectedTurma.id] ?? null} onMove={handleMoveAssignment} />
+                      {!schedule && (
+                        <p className="mt-3 text-sm text-slate-400 print:hidden">
+                          Clique em "Gerar horários" para preencher a grade automaticamente.
+                        </p>
+                      )}
                     </div>
-                    <ScheduleGrid grade={schedule?.grades[selectedTurma.id] ?? null} />
-                    {!schedule && (
-                      <p className="mt-3 text-sm text-slate-400 print:hidden">
-                        Clique em "Gerar horários" para preencher a grade automaticamente.
-                      </p>
-                    )}
+                  </>
+                ) : (
+                  <div className="flex h-64 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-200 bg-white/50 text-sm text-slate-400 dark:border-slate-700 dark:bg-white/2">
+                    <CalendarClock className="h-8 w-8 text-slate-300 dark:text-slate-600" strokeWidth={1.5} />
+                    Crie uma turma para começar.
                   </div>
-                </>
-              ) : (
-                <div className="flex h-64 items-center justify-center rounded-2xl border border-dashed border-slate-200 text-sm text-slate-400 dark:border-slate-700">
-                  Crie uma turma para começar.
-                </div>
-              )}
-            </section>
-          </div>
-        )}
+                )}
+              </>
+            )}
+
+            {tab === "turmas" && <TurmasManager />}
+            {tab === "materias" && <MateriasManager />}
+            {tab === "professores" && <ProfessoresManager />}
+            {tab === "admin" && user.role === "admin" && <AdminPanel />}
+          </section>
+        </div>
       </main>
-
-      <NovaTurmaModal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        onCreate={(nome, turno) => addTurma({ nome, turno, cargaHoraria: {} })}
-      />
     </div>
   )
 }
 
 function AdminPanel() {
+  const { professores } = useData()
+
   return (
     <div className="grid gap-6 lg:grid-cols-2">
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-slate-900">
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900">
         <h2 className="font-display text-base font-semibold text-slate-800 dark:text-white">Professores</h2>
-        <p className="mb-4 text-xs text-slate-400">Cadastro mock — usado pelo gerador para alocar as aulas.</p>
+        <p className="mb-4 text-xs text-slate-400">Editáveis na aba "Professores" — usados pelo gerador para alocar as aulas.</p>
         <ul className="divide-y divide-slate-100 dark:divide-white/5">
-          {PROFESSORES.map((p) => (
-            <li key={p.id} className="flex items-center justify-between py-2.5 text-sm">
+          {professores.map((p) => (
+            <li key={p.id} className="flex items-center justify-between rounded-lg px-2 py-2.5 text-sm transition-colors hover:bg-slate-50 dark:hover:bg-white/5">
               <span className="font-medium text-slate-700 dark:text-slate-200">{p.nome}</span>
               <span className="text-xs text-slate-400">{p.disciplinaIds.join(", ")}</span>
             </li>
@@ -311,12 +442,12 @@ function AdminPanel() {
         </ul>
       </div>
 
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-white/10 dark:bg-slate-900">
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900">
         <h2 className="font-display text-base font-semibold text-slate-800 dark:text-white">Usuários</h2>
         <p className="mb-4 text-xs text-slate-400">Contas mock com acesso ao sistema.</p>
         <ul className="divide-y divide-slate-100 dark:divide-white/5">
           {MOCK_USERS.map((u) => (
-            <li key={u.id} className="flex items-center justify-between py-2.5 text-sm">
+            <li key={u.id} className="flex items-center justify-between rounded-lg px-2 py-2.5 text-sm transition-colors hover:bg-slate-50 dark:hover:bg-white/5">
               <div>
                 <p className="font-medium text-slate-700 dark:text-slate-200">{u.name}</p>
                 <p className="text-xs text-slate-400">{u.email}</p>

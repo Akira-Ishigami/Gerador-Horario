@@ -7,7 +7,10 @@ interface ThemeContextValue {
   toggleTheme: () => void
 }
 
-const STORAGE_KEY = "horaria_theme"
+// v2: renomeado de propósito para invalidar qualquer "dark" salvo antes da
+// mudança de padrão (agora o app sempre nasce claro, só escurece se o
+// usuário clicar no botão).
+const STORAGE_KEY = "horaria_theme_v2"
 
 const ThemeContext = createContext<ThemeContextValue | null>(null)
 
