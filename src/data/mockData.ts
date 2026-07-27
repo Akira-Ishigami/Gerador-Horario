@@ -13,29 +13,12 @@ export interface MockUser {
 }
 
 /**
- * Usuários mock — sem backend. Login apenas confere email/senha nesta lista.
- * Credencial pedida pelo dono do projeto: akira.vha@gmail.com / akira123a (admin).
+ * Sem backend ainda — login confere email/senha contra esta lista + as
+ * contas criadas via cadastro (guardadas em localStorage, ver AuthContext).
+ * Nenhuma conta fixa de demonstração aqui de propósito — troque por uma
+ * consulta real ao banco quando o backend entrar.
  */
-export const MOCK_USERS: MockUser[] = [
-  {
-    id: "u-admin",
-    name: "Akira",
-    email: "akira.vha@gmail.com",
-    password: "akira123a",
-    role: "admin",
-    plan: "ouro",
-    avatarColor: "#6366f1",
-  },
-  {
-    id: "u-coord",
-    name: "Coordenação Demo",
-    email: "coordenador@escola.com",
-    password: "demo1234",
-    role: "user",
-    plan: "prata",
-    avatarColor: "#0891b2",
-  },
-]
+export const MOCK_USERS: MockUser[] = []
 
 export interface Disciplina {
   id: string

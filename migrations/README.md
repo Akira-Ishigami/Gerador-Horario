@@ -1,6 +1,10 @@
 # Migrations
 
-Vazio de propósito — este protótipo ainda não tem backend/banco de dados (ver README.md na raiz).
+SQL do banco (Supabase/Postgres), numerado em ordem. Rode cada arquivo uma
+vez no SQL Editor do seu projeto Supabase, na ordem dos números.
 
-Quando conectar um banco real (Supabase/Postgres/etc.), as migrations SQL entram aqui,
-numeradas em ordem (`0001_init.sql`, `0002_add_turmas.sql`, ...).
+- `0001_profiles_subscriptions.sql` — tabelas `profiles` (dados do usuário:
+  nome, papel, plano) e `subscriptions` (histórico de assinaturas do
+  Mercado Pago), com as políticas de RLS. Ver [`../supabase/README.md`](../supabase/README.md)
+  para o passo a passo completo de conectar o backend (Edge Functions +
+  Mercado Pago).

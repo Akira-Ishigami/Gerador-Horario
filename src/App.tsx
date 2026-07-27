@@ -6,6 +6,7 @@ import { ProtectedRoute } from "@/components/ProtectedRoute"
 import LandingPage from "@/pages/LandingPage"
 import LoginPage from "@/pages/LoginPage"
 import DashboardPage from "@/pages/DashboardPage"
+import PagamentoRetornoPage from "@/pages/PagamentoRetornoPage"
 
 function App() {
   return (
@@ -21,6 +22,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <DashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/pagamento/retorno"
+                element={
+                  <ProtectedRoute>
+                    <PagamentoRetornoPage />
                   </ProtectedRoute>
                 }
               />

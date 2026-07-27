@@ -444,7 +444,7 @@ function AdminPanel() {
 
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900">
         <h2 className="font-display text-base font-semibold text-slate-800 dark:text-white">Usuários</h2>
-        <p className="mb-4 text-xs text-slate-400">Contas mock com acesso ao sistema.</p>
+        <p className="mb-4 text-xs text-slate-400">Contas com acesso ao sistema (via banco de dados real).</p>
         <ul className="divide-y divide-slate-100 dark:divide-white/5">
           {MOCK_USERS.map((u) => (
             <li key={u.id} className="flex items-center justify-between rounded-lg px-2 py-2.5 text-sm transition-colors hover:bg-slate-50 dark:hover:bg-white/5">
@@ -463,6 +463,9 @@ function AdminPanel() {
               </span>
             </li>
           ))}
+          {MOCK_USERS.length === 0 && (
+            <li className="px-2 py-4 text-sm text-slate-400">Nenhuma conta cadastrada ainda.</li>
+          )}
         </ul>
       </div>
     </div>

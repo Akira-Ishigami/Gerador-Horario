@@ -1,92 +1,133 @@
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react"
-import { MOCK_USERS, type MockUser } from "@/data/mockData"
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react"
+import { supabase } from "@/lib/supabaseClient"
+import type { PlanId } from "@/config/branding"
 
-interface AuthContextValue {
-  user: MockUser | null
-  login: (email: string, password: string) => { ok: true } | { ok: false; error: string }
-  signup: (name: string, email: string, password: string) => { ok: true } | { ok: false; error: string }
-  logout: () => void
+export type Role = "admin" | "user"
+
+export interface AppUser {
+  id: string
+  name: string
+  email: string
+  role: Role
+  plan: PlanId
+  avatarColor: string
 }
 
-const STORAGE_KEY = "horaria_auth_user_id"
-const SIGNUP_USERS_KEY = "horaria_signup_users"
-
-function loadSignupUsers(): MockUser[] {
-  try {
-    const raw = localStorage.getItem(SIGNUP_USERS_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
+interface AuthContextValue {
+  user: AppUser | null
+  /** true enquanto a sessão do Supabase ainda está sendo restaurada (é assíncrono). */
+  loading: boolean
+  login: (email: string, password: string) => Promise<{ ok: true } | { ok: false; error: string }>
+  signup: (
+    name: string,
+    email: string,
+    password: string,
+  ) => Promise<{ ok: true; needsEmailConfirmation: boolean } | { ok: false; error: string }>
+  logout: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
-export function AuthProvider({ children }: { children: ReactNode }) {
-  const [signupUsers, setSignupUsers] = useState<MockUser[]>(loadSignupUsers)
-  // restaura a sessão de forma síncrona (não via effect) — evita um primeiro
-  // render com user=null que faria telas dependentes (ex: wizard de
-  // onboarding por turmas.length === 0) piscarem errado antes de assentar.
-  const [user, setUser] = useState<MockUser | null>(() => {
-    const savedId = localStorage.getItem(STORAGE_KEY)
-    if (!savedId) return null
-    return [...MOCK_USERS, ...signupUsers].find((u) => u.id === savedId) ?? null
-  })
+interface ProfileRow {
+  name: string
+  role: Role
+  plan: PlanId
+  avatar_color: string
+}
 
-  const allUsers = useMemo(() => [...MOCK_USERS, ...signupUsers], [signupUsers])
+async function fetchProfile(id: string, email: string): Promise<AppUser | null> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("name, role, plan, avatar_color")
+    .eq("id", id)
+    .single<ProfileRow>()
 
-  const login = (email: string, password: string) => {
-    const found = allUsers.find(
-      (u) => u.email.toLowerCase() === email.trim().toLowerCase() && u.password === password,
-    )
-    if (!found) {
-      return { ok: false as const, error: "E-mail ou senha inválidos." }
-    }
-    setUser(found)
-    localStorage.setItem(STORAGE_KEY, found.id)
-    return { ok: true as const }
+  if (error || !data) {
+    // Perfil ainda não existe (trigger de signup pode levar um instante) ou a
+    // migration em migrations/0001_profiles_subscriptions.sql não rodou.
+    return null
   }
 
-  const signup: AuthContextValue["signup"] = (name, email, password) => {
+  return {
+    id,
+    email,
+    name: data.name || email.split("@")[0],
+    role: data.role,
+    plan: data.plan,
+    avatarColor: data.avatar_color,
+  }
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<AppUser | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let active = true
+
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!active) return
+      if (session?.user) {
+        const profile = await fetchProfile(session.user.id, session.user.email ?? "")
+        if (active) setUser(profile)
+      }
+      if (active) setLoading(false)
+    })
+
+    const { data: listener } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!active) return
+      if (session?.user) {
+        const profile = await fetchProfile(session.user.id, session.user.email ?? "")
+        if (active) setUser(profile)
+      } else {
+        setUser(null)
+      }
+    })
+
+    return () => {
+      active = false
+      listener.subscription.unsubscribe()
+    }
+  }, [])
+
+  const login: AuthContextValue["login"] = async (email, password) => {
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    })
+    if (error) return { ok: false, error: "E-mail ou senha inválidos." }
+    return { ok: true }
+  }
+
+  const signup: AuthContextValue["signup"] = async (name, email, password) => {
     const trimmedName = name.trim()
     const trimmedEmail = email.trim().toLowerCase()
     if (!trimmedName || !trimmedEmail || !password) {
-      return { ok: false as const, error: "Preencha nome, e-mail e senha." }
-    }
-    if (allUsers.some((u) => u.email.toLowerCase() === trimmedEmail)) {
-      return { ok: false as const, error: "Já existe uma conta com esse e-mail." }
+      return { ok: false, error: "Preencha nome, e-mail e senha." }
     }
 
-    const newUser: MockUser = {
-      id: `u-${Date.now()}`,
-      name: trimmedName,
+    const { data, error } = await supabase.auth.signUp({
       email: trimmedEmail,
       password,
-      role: "user",
-      plan: "teste",
-      avatarColor: "#6366f1",
+      options: { data: { name: trimmedName } },
+    })
+
+    if (error) {
+      const msg = error.message.includes("already registered") ? "Já existe uma conta com esse e-mail." : error.message
+      return { ok: false, error: msg }
     }
 
-    const updated = [...signupUsers, newUser]
-    setSignupUsers(updated)
-    localStorage.setItem(SIGNUP_USERS_KEY, JSON.stringify(updated))
-    // conta nova no plano Teste (1 turma) começa vazia — sem isso, DataContext
-    // cairia no fallback de turmas mock e já nasceria acima do limite do plano.
-    localStorage.setItem(`horaria_turmas_${newUser.id}`, JSON.stringify([]))
-
-    setUser(newUser)
-    localStorage.setItem(STORAGE_KEY, newUser.id)
-    return { ok: true as const }
+    // Se a confirmação de e-mail estiver ativada no projeto Supabase, `session`
+    // vem nulo até o usuário clicar no link recebido por e-mail.
+    return { ok: true, needsEmailConfirmation: !data.session }
   }
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut()
     setUser(null)
-    localStorage.removeItem(STORAGE_KEY)
   }
 
-  const value = useMemo(() => ({ user, login, signup, logout }), [user, allUsers])
-
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
+  return <AuthContext.Provider value={{ user, loading, login, signup, logout }}>{children}</AuthContext.Provider>
 }
 
 export function useAuth() {

@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useLocation, useNavigate } from "react-router-dom"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   AlertTriangle,
@@ -11,6 +11,7 @@ import {
   Globe,
   Hourglass,
   LayoutGrid,
+  Loader2,
   Medal,
   ShieldCheck,
   User,
@@ -19,7 +20,9 @@ import {
 } from "lucide-react"
 import { Navbar } from "@/components/Navbar"
 import { Footer } from "@/components/Footer"
-import { PAID_PLANS, APP_NAME } from "@/config/branding"
+import { PAID_PLANS, APP_NAME, type PlanId } from "@/config/branding"
+import { useAuth } from "@/context/AuthContext"
+import { createCheckoutSession } from "@/services/payment"
 import { useSEO } from "@/hooks/useSEO"
 
 const PROBLEMS = [
@@ -254,6 +257,39 @@ export default function LandingPage() {
   })
 
   const [ciclo, setCiclo] = useState<"mensal" | "anual">("mensal")
+  const location = useLocation()
+  const navigate = useNavigate()
+  const { user } = useAuth()
+  const [checkoutLoading, setCheckoutLoading] = useState<PlanId | null>(null)
+  const [checkoutError, setCheckoutError] = useState<string | null>(null)
+
+  const handleEscolherPlano = async (planId: PlanId) => {
+    if (!user) {
+      navigate(`/login?modo=cadastro&plano=${planId}`)
+      return
+    }
+    setCheckoutError(null)
+    setCheckoutLoading(planId)
+    const result = await createCheckoutSession(planId)
+    setCheckoutLoading(null)
+    if (!result.ok || !result.initPoint) {
+      setCheckoutError(result.error ?? "Não foi possível iniciar o pagamento.")
+      return
+    }
+    window.location.href = result.initPoint
+  }
+
+  useEffect(() => {
+    if (!location.hash) return
+    // pequeno delay: dá tempo do layout assentar antes de rolar até a seção —
+    // necessário quando se navega de outra rota (ex: /app → /#planos), já que
+    // o react-router (BrowserRouter) não rola até o hash sozinho.
+    const id = location.hash.slice(1)
+    const timer = setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" })
+    }, 120)
+    return () => clearTimeout(timer)
+  }, [location.hash])
 
   useEffect(() => {
     const root = document.documentElement
@@ -478,20 +514,27 @@ export default function LandingPage() {
                   </li>
                 ))}
               </ul>
-              <Link
-                to="/login?modo=cadastro"
-                className={`mt-8 inline-flex items-center justify-center px-4 py-3 text-sm font-semibold transition-colors ${
+              <button
+                type="button"
+                onClick={() => handleEscolherPlano(plan.id)}
+                disabled={checkoutLoading !== null}
+                className={`mt-8 inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
                   plan.highlight
                     ? "bg-stone-950 text-white hover:bg-stone-800"
                     : "border border-stone-900/15 text-stone-700 hover:border-brand-400 hover:text-brand-600"
                 }`}
               >
+                {checkoutLoading === plan.id && <Loader2 className="h-4 w-4 animate-spin" />}
                 Escolher {plan.name}
-              </Link>
+              </button>
             </motion.div>
             )
           })}
         </div>
+
+        {checkoutError && (
+          <p className="mt-4 text-center text-sm text-rose-600">{checkoutError}</p>
+        )}
 
         <p className="mt-6 text-center font-landing-mono text-xs text-stone-400">
           Pagamento recorrente será processado via Mercado Pago (integração em breve). Cancele quando quiser.
