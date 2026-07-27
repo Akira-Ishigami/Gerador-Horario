@@ -1,0 +1,36 @@
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom"
+import { AuthProvider } from "@/context/AuthContext"
+import { ThemeProvider } from "@/context/ThemeContext"
+import { DataProvider } from "@/context/DataContext"
+import { ProtectedRoute } from "@/components/ProtectedRoute"
+import LandingPage from "@/pages/LandingPage"
+import LoginPage from "@/pages/LoginPage"
+import DashboardPage from "@/pages/DashboardPage"
+
+function App() {
+  return (
+    <ThemeProvider>
+      <AuthProvider>
+        <DataProvider>
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route
+                path="/app"
+                element={
+                  <ProtectedRoute>
+                    <DashboardPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </BrowserRouter>
+        </DataProvider>
+      </AuthProvider>
+    </ThemeProvider>
+  )
+}
+
+export default App
