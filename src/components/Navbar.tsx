@@ -97,26 +97,22 @@ export function Navbar() {
 
         {open && (
           <div className="border-t border-stone-900/10 bg-stone-50 px-4 py-4 lg:hidden">
-            <nav className="flex flex-col gap-3">
-              {LINKS.map((link) => (
-                <a
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => setOpen(false)}
-                  className="rounded-lg px-2 py-2 text-sm font-medium text-stone-700"
-                >
-                  {link.label}
-                </a>
-              ))}
-              <div className="mt-2 flex items-center justify-between border-t border-stone-900/10 pt-3">
-                <Link to="/login" className="rounded-lg px-3 py-2 text-sm font-medium text-stone-700">
-                  Entrar
-                </Link>
-                <Link to="/login?modo=cadastro" className="rounded-lg bg-stone-900 px-3 py-2 text-sm font-semibold text-white">
-                  Começar
-                </Link>
-              </div>
-            </nav>
+            <div className="flex items-center gap-3">
+              <Link
+                to="/login"
+                onClick={() => setOpen(false)}
+                className="flex-1 rounded-lg border border-stone-900/15 px-3 py-2.5 text-center text-sm font-medium text-stone-700"
+              >
+                Entrar
+              </Link>
+              <Link
+                to="/login?modo=cadastro"
+                onClick={() => setOpen(false)}
+                className="flex-1 rounded-lg bg-stone-900 px-3 py-2.5 text-center text-sm font-semibold text-white"
+              >
+                Começar
+              </Link>
+            </div>
           </div>
         )}
       </div>
