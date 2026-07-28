@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Link } from "react-router-dom"
 import {
   AlertTriangle,
   ArrowUpCircle,
   BookOpen,
   CalendarClock,
+  Clock,
   GraduationCap,
   LogOut,
   Minus,
@@ -24,6 +25,7 @@ import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard"
 import { TurmasManager } from "@/components/dashboard/TurmasManager"
 import { MateriasManager } from "@/components/dashboard/MateriasManager"
 import { ProfessoresManager } from "@/components/dashboard/ProfessoresManager"
+import { BlocosManager } from "@/components/dashboard/BlocosManager"
 import { MOCK_USERS } from "@/data/mockData"
 import { gerarHorarios, type GeneratedSchedule } from "@/lib/scheduleGenerator"
 import { APP_NAME, MVP_SEM_LIMITES } from "@/config/branding"
@@ -110,7 +112,7 @@ export default function DashboardPage() {
   })
 
   const { user, logout } = useAuth()
-  const { turmas, updateCargaHoraria, professores, disciplinas } = useData()
+  const { turmas, updateCargaHoraria, professores, disciplinas, blocos } = useData()
   const { remainingMs: freeGenRemaining, usesLeft: freeGenUsesLeft, registrarGeracao } = useFreeGenCooldown(
     !MVP_SEM_LIMITES && user?.plan === "teste" ? user.id : "",
   )
@@ -123,6 +125,8 @@ export default function DashboardPage() {
   const [selectedId, setSelectedId] = useState<string | null>(turmas[0]?.id ?? null)
   const [schedule, setSchedule] = useState<GeneratedSchedule | null>(null)
   const [tab, setTab] = useState<TabId>("horarios")
+  const [mostrarConfigHorarios, setMostrarConfigHorarios] = useState(false)
+  const [printTargetId, setPrintTargetId] = useState<string | null>(null)
 
   useEffect(() => {
     if (!selectedId && turmas.length > 0) setSelectedId(turmas[0].id)
@@ -131,30 +135,58 @@ export default function DashboardPage() {
     }
   }, [turmas, selectedId])
 
+  useEffect(() => {
+    if (!printTargetId) return
+    window.print()
+    setPrintTargetId(null)
+  }, [printTargetId])
+
   const selectedTurma = turmas.find((t) => t.id === selectedId) ?? null
+
+  // Turmas (e disciplina) que cada professor está de fato lecionando na
+  // última grade gerada — derivado, não é dado próprio do professor.
+  const turmasPorProfessor = useMemo(() => {
+    const map = new Map<string, { turma: string; disciplina: string }[]>()
+    if (!schedule) return map
+    for (const turma of turmas) {
+      const grade = schedule.grades[turma.id]
+      if (!grade) continue
+      const vistos = new Set<string>()
+      for (const linha of grade) {
+        for (const slot of linha) {
+          if (!slot) continue
+          const key = `${slot.professorId}-${slot.disciplinaId}`
+          if (vistos.has(key)) continue
+          vistos.add(key)
+          const disciplina = disciplinas.find((d) => d.id === slot.disciplinaId)
+          const atual = map.get(slot.professorId) ?? []
+          atual.push({ turma: turma.nome, disciplina: disciplina?.nome ?? slot.disciplinaId })
+          map.set(slot.professorId, atual)
+        }
+      }
+    }
+    return map
+  }, [schedule, turmas, disciplinas])
 
   const handleGerar = () => {
     if (!MVP_SEM_LIMITES && user?.plan === "teste" && !registrarGeracao()) return
-    const result = gerarHorarios(turmas, professores)
+    const result = gerarHorarios(turmas, professores, blocos, disciplinas)
     setSchedule(result)
   }
 
-  const handleMoveAssignment = (fromDia: number, fromPeriodo: number, toDia: number, toPeriodo: number) => {
-    if (!selectedTurma) return
+  const handleMoveAssignment = (turmaId: string, fromDia: number, fromBloco: number, toDia: number, toBloco: number) => {
     setSchedule((prev) => {
       if (!prev) return prev
-      const grade = prev.grades[selectedTurma.id]
+      const grade = prev.grades[turmaId]
       if (!grade) return prev
       const novaGrade = grade.map((linha) => [...linha])
-      const origem = novaGrade[fromDia][fromPeriodo]
-      const destino = novaGrade[toDia][toPeriodo]
-      novaGrade[toDia][toPeriodo] = origem
-      novaGrade[fromDia][fromPeriodo] = destino
-      return { ...prev, grades: { ...prev.grades, [selectedTurma.id]: novaGrade } }
+      const origem = novaGrade[fromDia][fromBloco]
+      const destino = novaGrade[toDia][toBloco]
+      novaGrade[toDia][toBloco] = origem
+      novaGrade[fromDia][fromBloco] = destino
+      return { ...prev, grades: { ...prev.grades, [turmaId]: novaGrade } }
     })
   }
-
-  const handlePrint = () => window.print()
 
   if (!user) return null
 
@@ -318,19 +350,38 @@ export default function DashboardPage() {
                       </button>
                     )}
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleGerar}
-                    disabled={turmas.length === 0 || (user.plan === "teste" && freeGenUsesLeft <= 0)}
-                    className="group flex shrink-0 items-center justify-center gap-2 rounded-xl bg-linear-to-r from-brand-600 to-accent-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-600/30 transition-all hover:scale-[1.01] hover:shadow-xl hover:shadow-brand-600/40 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
-                  >
-                    <Sparkles className="h-4 w-4 transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110" />{" "}
-                    Gerar horários
-                  </button>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setMostrarConfigHorarios((v) => !v)}
+                      className={`flex items-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors ${
+                        mostrarConfigHorarios
+                          ? "border-brand-300 bg-brand-50 text-brand-700 dark:border-brand-800 dark:bg-brand-950/40 dark:text-brand-300"
+                          : "border-slate-200 text-slate-600 hover:border-brand-300 hover:text-brand-600 dark:border-white/10 dark:text-slate-300"
+                      }`}
+                    >
+                      <Clock className="h-4 w-4" /> Horários e intervalo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleGerar}
+                      disabled={turmas.length === 0 || (user.plan === "teste" && freeGenUsesLeft <= 0)}
+                      className="group flex items-center justify-center gap-2 rounded-xl bg-linear-to-r from-brand-600 to-accent-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-600/30 transition-all hover:scale-[1.01] hover:shadow-xl hover:shadow-brand-600/40 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+                    >
+                      <Sparkles className="h-4 w-4 transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110" />{" "}
+                      Gerar horários
+                    </button>
+                  </div>
                 </div>
 
+                {mostrarConfigHorarios && (
+                  <div className="print:hidden">
+                    <BlocosManager />
+                  </div>
+                )}
+
                 {schedule && schedule.conflitos.length > 0 && (
-                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300">
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300 print:hidden">
                     <div className="mb-1 flex items-center gap-2 font-semibold">
                       <AlertTriangle className="h-4 w-4" /> {schedule.conflitos.length} conflito(s) encontrado(s)
                     </div>
@@ -383,25 +434,45 @@ export default function DashboardPage() {
                       </div>
                     </div>
 
-                    <div id="print-area" className={user.plan === "teste" ? "watermark-teste" : undefined}>
-                      <div className="mb-3 flex items-center justify-between">
-                        <h2 className="font-display text-base font-semibold text-slate-800 dark:text-white">
-                          Grade horária · {selectedTurma.nome}
-                        </h2>
-                        <button
-                          type="button"
-                          onClick={handlePrint}
-                          className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-brand-400 hover:text-brand-600 dark:border-slate-700 dark:text-slate-300 print:hidden"
+                    {!schedule && (
+                      <p className="text-sm text-slate-400 print:hidden">
+                        Clique em "Gerar horários" para preencher a grade de todas as turmas automaticamente.
+                      </p>
+                    )}
+
+                    <div className="space-y-6">
+                      {turmas.map((turma) => (
+                        <div
+                          key={turma.id}
+                          className={
+                            user.plan === "teste"
+                              ? `watermark-teste${printTargetId === turma.id ? " print-target" : ""}`
+                              : printTargetId === turma.id
+                                ? "print-target"
+                                : undefined
+                          }
                         >
-                          <Printer className="h-3.5 w-3.5" /> Exportar / imprimir
-                        </button>
-                      </div>
-                      <ScheduleGrid grade={schedule?.grades[selectedTurma.id] ?? null} onMove={handleMoveAssignment} />
-                      {!schedule && (
-                        <p className="mt-3 text-sm text-slate-400 print:hidden">
-                          Clique em "Gerar horários" para preencher a grade automaticamente.
-                        </p>
-                      )}
+                          <div className="mb-3 flex items-center justify-between">
+                            <h2 className="font-display text-base font-semibold text-slate-800 dark:text-white">
+                              Grade horária · {turma.nome}
+                            </h2>
+                            <button
+                              type="button"
+                              onClick={() => setPrintTargetId(turma.id)}
+                              className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-brand-400 hover:text-brand-600 dark:border-slate-700 dark:text-slate-300 print:hidden"
+                            >
+                              <Printer className="h-3.5 w-3.5" /> Exportar / imprimir
+                            </button>
+                          </div>
+                          <ScheduleGrid
+                            grade={schedule?.grades[turma.id] ?? null}
+                            blocos={blocos}
+                            onMove={(fromDia, fromBloco, toDia, toBloco) =>
+                              handleMoveAssignment(turma.id, fromDia, fromBloco, toDia, toBloco)
+                            }
+                          />
+                        </div>
+                      ))}
                     </div>
                   </>
                 ) : (
@@ -415,7 +486,7 @@ export default function DashboardPage() {
 
             {tab === "turmas" && <TurmasManager />}
             {tab === "materias" && <MateriasManager />}
-            {tab === "professores" && <ProfessoresManager />}
+            {tab === "professores" && <ProfessoresManager turmasPorProfessor={turmasPorProfessor} />}
             {tab === "admin" && user.role === "admin" && <AdminPanel />}
           </section>
         </div>

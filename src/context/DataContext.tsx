@@ -1,5 +1,14 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
-import { DISCIPLINAS, PROFESSORES, TURMAS_INICIAIS, type Disciplina, type Professor, type Turma } from "@/data/mockData"
+import {
+  BLOCOS_HORARIOS_PADRAO,
+  DISCIPLINAS,
+  PROFESSORES,
+  TURMAS_INICIAIS,
+  type BlocoHorario,
+  type Disciplina,
+  type Professor,
+  type Turma,
+} from "@/data/mockData"
 import { useAuth } from "@/context/AuthContext"
 import { getPlan, MVP_SEM_LIMITES } from "@/config/branding"
 
@@ -15,6 +24,8 @@ interface DataContextValue {
   setProfessores: (professores: Professor[]) => void
   disciplinas: Disciplina[]
   setDisciplinas: (disciplinas: Disciplina[]) => void
+  blocos: BlocoHorario[]
+  setBlocos: (blocos: BlocoHorario[]) => void
 }
 
 const DataContext = createContext<DataContextValue | null>(null)
@@ -24,6 +35,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const storageKey = user ? `horaria_turmas_${user.id}` : null
   const professoresKey = user ? `horaria_professores_${user.id}` : null
   const disciplinasKey = user ? `horaria_disciplinas_${user.id}` : null
+  const blocosKey = user ? `horaria_blocos_${user.id}` : null
 
   // lazy init síncrono (não via effect) — evita um primeiro render com
   // turmas=[] pra usuários que já têm dados salvos, o que faria o wizard de
@@ -42,6 +54,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
     if (!disciplinasKey) return []
     const saved = localStorage.getItem(disciplinasKey)
     return saved ? JSON.parse(saved) : DISCIPLINAS
+  })
+  const [blocos, setBlocosState] = useState<BlocoHorario[]>(() => {
+    if (!blocosKey) return []
+    const saved = localStorage.getItem(blocosKey)
+    return saved ? JSON.parse(saved) : BLOCOS_HORARIOS_PADRAO
   })
 
   useEffect(() => {
@@ -89,6 +106,21 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [disciplinasKey, disciplinas])
 
+  useEffect(() => {
+    if (!blocosKey) {
+      setBlocosState([])
+      return
+    }
+    const saved = localStorage.getItem(blocosKey)
+    setBlocosState(saved ? JSON.parse(saved) : BLOCOS_HORARIOS_PADRAO)
+  }, [blocosKey])
+
+  useEffect(() => {
+    if (blocosKey && blocos.length >= 0) {
+      localStorage.setItem(blocosKey, JSON.stringify(blocos))
+    }
+  }, [blocosKey, blocos])
+
   const maxTurmas = MVP_SEM_LIMITES ? null : user ? getPlan(user.plan).maxTurmas : null
   const limiteAtingido = maxTurmas !== null && turmas.length >= maxTurmas
 
@@ -123,6 +155,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const setProfessores = (next: Professor[]) => setProfessoresState(next)
   const setDisciplinas = (next: Disciplina[]) => setDisciplinasState(next)
+  const setBlocos = (next: BlocoHorario[]) => setBlocosState(next)
 
   const value = useMemo(
     () => ({
@@ -137,8 +170,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setProfessores,
       disciplinas,
       setDisciplinas,
+      blocos,
+      setBlocos,
     }),
-    [turmas, limiteAtingido, maxTurmas, professores, disciplinas],
+    [turmas, limiteAtingido, maxTurmas, professores, disciplinas, blocos],
   )
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>

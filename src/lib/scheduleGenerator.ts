@@ -1,11 +1,11 @@
-import { DIAS_SEMANA, HORARIOS, type Professor, type Turma } from "@/data/mockData"
+import { DIAS_SEMANA, type BlocoHorario, type Disciplina, type Professor, type Turma } from "@/data/mockData"
 
 export interface SlotAssignment {
   disciplinaId: string
   professorId: string
 }
 
-/** grade[dia][periodo] */
+/** grade[dia][blocoIndex] — blocoIndex corresponde à posição em `blocos` (inclui intervalos, sempre null neles) */
 export type Grade = (SlotAssignment | null)[][]
 
 export interface GeneratedSchedule {
@@ -13,8 +13,8 @@ export interface GeneratedSchedule {
   conflitos: string[]
 }
 
-const emptyGrade = (): Grade =>
-  DIAS_SEMANA.map(() => HORARIOS.map(() => null))
+const emptyGrade = (totalBlocos: number): Grade =>
+  DIAS_SEMANA.map(() => Array.from({ length: totalBlocos }, () => null))
 
 function shuffle<T>(arr: T[]): T[] {
   const copy = [...arr]
@@ -27,21 +27,31 @@ function shuffle<T>(arr: T[]): T[] {
 
 /**
  * Gera a grade horária de todas as turmas evitando que um mesmo professor
- * seja escalado em duas turmas no mesmo dia/período. Estratégia gulosa com
+ * seja escalado em duas turmas no mesmo dia/bloco. Estratégia gulosa com
  * preferência por espalhar as aulas de uma disciplina ao longo da semana;
  * quando não há slot válido, registra o conflito em vez de travar a geração.
+ * Blocos do tipo "intervalo" nunca recebem aula.
  */
 export function gerarHorarios(
   turmas: Turma[],
   professores: Professor[],
+  blocos: BlocoHorario[],
+  disciplinas: Disciplina[],
 ): GeneratedSchedule {
   const grades: Record<string, Grade> = {}
   const conflitos: string[] = []
-  // ocupacao[professorId] = Set("diaIndex-periodoIndex")
+  // ocupacao[professorId] = Set("diaIndex-blocoIndex")
   const ocupacaoProfessor = new Map<string, Set<string>>()
 
+  const nomeDisciplina = (disciplinaId: string) =>
+    disciplinas.find((d) => d.id === disciplinaId)?.nome ?? disciplinaId
+
+  const blocosAula = blocos
+    .map((b, index) => ({ ...b, index }))
+    .filter((b) => b.tipo === "aula")
+
   for (const turma of turmas) {
-    grades[turma.id] = emptyGrade()
+    grades[turma.id] = emptyGrade(blocos.length)
   }
 
   const professorPorDisciplina = (disciplinaId: string): Professor[] =>
@@ -57,7 +67,7 @@ export function gerarHorarios(
       const candidatosProfessor = professorPorDisciplina(disciplinaId)
       if (candidatosProfessor.length === 0) {
         conflitos.push(
-          `Nenhum professor cadastrado para a disciplina "${disciplinaId}" (${turma.nome}).`,
+          `Nenhum professor cadastrado para a disciplina "${nomeDisciplina(disciplinaId)}" (${turma.nome}).`,
         )
         continue
       }
@@ -73,16 +83,16 @@ export function gerarHorarios(
         let posicionado = false
         for (const diaIdx of ordemDias) {
           if (posicionado) break
-          const ordemPeriodos = shuffle(HORARIOS.map((_, i) => i))
-          for (const periodoIdx of ordemPeriodos) {
-            if (grade[diaIdx][periodoIdx] !== null) continue
-            const key = `${diaIdx}-${periodoIdx}`
+          const ordemBlocos = shuffle(blocosAula)
+          for (const bloco of ordemBlocos) {
+            if (grade[diaIdx][bloco.index] !== null) continue
+            const key = `${diaIdx}-${bloco.index}`
             const professorLivre = shuffle(candidatosProfessor).find(
               (p) => !ocupacaoProfessor.get(p.id)?.has(key),
             )
             if (!professorLivre) continue
 
-            grade[diaIdx][periodoIdx] = {
+            grade[diaIdx][bloco.index] = {
               disciplinaId,
               professorId: professorLivre.id,
             }
@@ -100,7 +110,7 @@ export function gerarHorarios(
 
       if (colocadas < quantidade) {
         conflitos.push(
-          `${turma.nome}: só foi possível alocar ${colocadas}/${quantidade} aulas de "${disciplinaId}" — grade cheia ou professor indisponível.`,
+          `${turma.nome}: só foi possível alocar ${colocadas}/${quantidade} aulas de "${nomeDisciplina(disciplinaId)}" — grade cheia ou professor indisponível.`,
         )
       }
     }

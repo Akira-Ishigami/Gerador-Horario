@@ -3,7 +3,12 @@ import { Plus, Trash2 } from "lucide-react"
 import { useData } from "@/context/DataContext"
 import type { Professor } from "@/data/mockData"
 
-export function ProfessoresManager() {
+interface ProfessoresManagerProps {
+  /** turmas (e disciplina) que cada professor leciona na última grade gerada — chave é o professorId */
+  turmasPorProfessor?: Map<string, { turma: string; disciplina: string }[]>
+}
+
+export function ProfessoresManager({ turmasPorProfessor }: ProfessoresManagerProps) {
   const { professores, setProfessores, disciplinas } = useData()
   const [novoNome, setNovoNome] = useState("")
 
@@ -92,6 +97,26 @@ export function ProfessoresManager() {
               })}
               {disciplinas.length === 0 && (
                 <p className="text-xs text-slate-400">Cadastre matérias primeiro para poder atribuí-las.</p>
+              )}
+            </div>
+
+            <div className="mt-3 border-t border-slate-100 pt-3 dark:border-white/10">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">Turmas que leciona</p>
+              {turmasPorProfessor?.get(p.id)?.length ? (
+                <ul className="mt-1.5 flex flex-wrap gap-1.5">
+                  {turmasPorProfessor.get(p.id)!.map((t) => (
+                    <li
+                      key={`${t.turma}-${t.disciplina}`}
+                      className="rounded-full bg-slate-100 px-2.5 py-1 text-xs text-slate-600 dark:bg-white/5 dark:text-slate-300"
+                    >
+                      {t.turma} <span className="text-slate-400">· {t.disciplina}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-1 text-xs text-slate-400">
+                  {turmasPorProfessor ? "Não escalado na última grade gerada." : "Gere os horários para ver as turmas."}
+                </p>
               )}
             </div>
           </div>

@@ -100,4 +100,22 @@ export const DIAS_SEMANA = ["Seg", "Ter", "Qua", "Qui", "Sex"] as const
 export const DIAS_SEMANA_COMPLETA = [...DIAS_SEMANA, "Sáb"] as const
 export type DiaSemana = (typeof DIAS_SEMANA_COMPLETA)[number]
 
-export const HORARIOS = ["07:00", "07:50", "08:40", "09:50", "10:40"] as const
+export interface BlocoHorario {
+  id: string
+  horario: string
+  tipo: "aula" | "intervalo"
+}
+
+/**
+ * Configurável por conta (ver DataContext). Este é só o valor inicial pra
+ * conta nova — já vem com um intervalo explícito no lugar do "buraco" que
+ * existia entre 08:40 e 09:50.
+ */
+export const BLOCOS_HORARIOS_PADRAO: BlocoHorario[] = [
+  { id: "h1", horario: "07:00", tipo: "aula" },
+  { id: "h2", horario: "07:50", tipo: "aula" },
+  { id: "h3", horario: "08:40", tipo: "aula" },
+  { id: "h4", horario: "09:30", tipo: "intervalo" },
+  { id: "h5", horario: "09:50", tipo: "aula" },
+  { id: "h6", horario: "10:40", tipo: "aula" },
+]

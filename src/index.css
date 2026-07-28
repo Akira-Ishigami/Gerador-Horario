@@ -145,11 +145,11 @@ h1, h2, h3, h4, .font-display {
   body * {
     visibility: hidden;
   }
-  #print-area,
-  #print-area * {
+  .print-target,
+  .print-target * {
     visibility: visible;
   }
-  #print-area {
+  .print-target {
     position: absolute;
     inset: 0;
     width: 100%;
