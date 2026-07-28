@@ -1,7 +1,6 @@
-import { useState } from "react"
 import { Link } from "react-router-dom"
 import { motion } from "framer-motion"
-import { ArrowRight, CalendarClock, Menu, X, Zap } from "lucide-react"
+import { ArrowRight, CalendarClock, User, Zap } from "lucide-react"
 import { APP_NAME } from "@/config/branding"
 
 // Seção de planos/preços tirada do ar temporariamente (MVP com escolas piloto,
@@ -15,8 +14,6 @@ const LINKS = [
 ]
 
 export function Navbar() {
-  const [open, setOpen] = useState(false)
-
   return (
     <header className="sticky top-0 z-50 font-landing-sans">
       <Link
@@ -85,36 +82,14 @@ export function Navbar() {
             </Link>
           </div>
 
-          <button
-            type="button"
-            className="flex items-center justify-center rounded-lg p-2 text-stone-700 lg:hidden"
-            onClick={() => setOpen((o) => !o)}
-            aria-label="Abrir menu"
+          <Link
+            to="/login"
+            className="flex h-10 w-10 items-center justify-center rounded-full border border-stone-900/15 bg-white text-stone-700 transition-colors hover:border-brand-400 hover:text-brand-600 lg:hidden"
+            aria-label="Entrar ou criar conta"
           >
-            {open ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-          </button>
+            <User className="h-5 w-5" strokeWidth={2.25} />
+          </Link>
         </div>
-
-        {open && (
-          <div className="border-t border-stone-900/10 bg-stone-50 px-4 py-4 lg:hidden">
-            <div className="flex items-center gap-3">
-              <Link
-                to="/login"
-                onClick={() => setOpen(false)}
-                className="flex-1 rounded-lg border border-stone-900/15 px-3 py-2.5 text-center text-sm font-medium text-stone-700"
-              >
-                Entrar
-              </Link>
-              <Link
-                to="/login?modo=cadastro"
-                onClick={() => setOpen(false)}
-                className="flex-1 rounded-lg bg-stone-900 px-3 py-2.5 text-center text-sm font-semibold text-white"
-              >
-                Começar
-              </Link>
-            </div>
-          </div>
-        )}
       </div>
     </header>
   )
