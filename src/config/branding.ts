@@ -9,6 +9,14 @@ export const APP_DESCRIPTION =
   "Horária é o gerador de horários escolares que monta a grade da sua escola automaticamente, sem conflitos de professores ou turmas."
 export const APP_DOMAIN = "horaria.app" // placeholder, ajustar quando o domínio for definido
 
+/**
+ * MVP com escolas piloto: sem limite de turmas nem de gerações grátis, e sem
+ * cobrança (checkout do Mercado Pago já está desativado em LandingPage/LoginPage).
+ * Os planos e preços continuam definidos abaixo pra quando voltarmos a vender —
+ * só essa flag muda pra `false` nesse momento.
+ */
+export const MVP_SEM_LIMITES = true
+
 export type PlanId = "teste" | "bronze" | "prata" | "ouro"
 
 export interface Plan {

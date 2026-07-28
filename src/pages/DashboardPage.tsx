@@ -26,7 +26,7 @@ import { MateriasManager } from "@/components/dashboard/MateriasManager"
 import { ProfessoresManager } from "@/components/dashboard/ProfessoresManager"
 import { MOCK_USERS } from "@/data/mockData"
 import { gerarHorarios, type GeneratedSchedule } from "@/lib/scheduleGenerator"
-import { APP_NAME } from "@/config/branding"
+import { APP_NAME, MVP_SEM_LIMITES } from "@/config/branding"
 import { useSEO } from "@/hooks/useSEO"
 
 const NAV_ITEMS = [
@@ -112,7 +112,7 @@ export default function DashboardPage() {
   const { user, logout } = useAuth()
   const { turmas, updateCargaHoraria, professores, disciplinas } = useData()
   const { remainingMs: freeGenRemaining, usesLeft: freeGenUsesLeft, registrarGeracao } = useFreeGenCooldown(
-    user?.plan === "teste" ? user.id : "",
+    !MVP_SEM_LIMITES && user?.plan === "teste" ? user.id : "",
   )
 
   const [onboarded, setOnboarded] = useState(() => {
@@ -134,7 +134,7 @@ export default function DashboardPage() {
   const selectedTurma = turmas.find((t) => t.id === selectedId) ?? null
 
   const handleGerar = () => {
-    if (user?.plan === "teste" && !registrarGeracao()) return
+    if (!MVP_SEM_LIMITES && user?.plan === "teste" && !registrarGeracao()) return
     const result = gerarHorarios(turmas, professores)
     setSchedule(result)
   }
@@ -224,7 +224,7 @@ export default function DashboardPage() {
           <aside className="space-y-4 print:hidden">
             <PlanBadge planId={user.plan} turmasUsadas={turmas.length} />
 
-            {user.plan === "teste" && (
+            {!MVP_SEM_LIMITES && user.plan === "teste" && (
               <div className="rounded-2xl border border-brand-200 bg-brand-50 p-4 shadow-sm dark:border-brand-900 dark:bg-brand-950/40">
                 <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-brand-700 dark:text-brand-300">
                   <span className="flex items-center gap-2">

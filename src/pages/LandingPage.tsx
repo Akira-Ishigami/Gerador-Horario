@@ -7,12 +7,17 @@ import {
   Award,
   CalendarCheck2,
   CheckCircle2,
+  ChevronDown,
   Crown,
   Globe,
   Hourglass,
   LayoutGrid,
-  Loader2,
   Medal,
+  MessageCircle,
+  Minus,
+  Move,
+  Plus,
+  Rocket,
   ShieldCheck,
   User,
   Users,
@@ -20,9 +25,8 @@ import {
 } from "lucide-react"
 import { Navbar } from "@/components/Navbar"
 import { Footer } from "@/components/Footer"
-import { PAID_PLANS, APP_NAME, type PlanId } from "@/config/branding"
+import { PAID_PLANS, APP_NAME, MVP_SEM_LIMITES, type PlanId } from "@/config/branding"
 import { useAuth } from "@/context/AuthContext"
-import { createCheckoutSession } from "@/services/payment"
 import { useSEO } from "@/hooks/useSEO"
 
 const PROBLEMS = [
@@ -244,6 +248,54 @@ const STEPS = [
   },
 ]
 
+const PILOT_BENEFITS = [
+  {
+    icon: Rocket,
+    title: "Acesso completo, agora",
+    desc: "Turmas ilimitadas, geração ilimitada, sem cartão de crédito e sem prazo pra decidir.",
+  },
+  {
+    icon: MessageCircle,
+    title: "Sua escola molda o produto",
+    desc: "O que funciona (e o que ainda emperra na sua rotina) vira prioridade real no que construímos a seguir.",
+  },
+  {
+    icon: Award,
+    title: "Condição especial depois",
+    desc: "Quando os planos pagos abrirem, quem testou na fase piloto entra na frente e com desconto.",
+  },
+]
+
+const CARGA_HORARIA_DEMO = [
+  { nome: "Matemática", aulas: 5, color: "bg-brand-400" },
+  { nome: "Português", aulas: 5, color: "bg-accent-400" },
+  { nome: "Ciências", aulas: 3, color: "bg-emerald-400" },
+  { nome: "História", aulas: 2, color: "bg-brand-300" },
+]
+
+const FAQS = [
+  {
+    q: "Preciso pagar para testar?",
+    a: "Não. Enquanto durar a fase piloto, o acesso é completo e gratuito — sem cartão de crédito, sem limite de turmas.",
+  },
+  {
+    q: "Preciso instalar alguma coisa?",
+    a: "Não, é 100% web. Você cria a conta e acessa pelo navegador, do computador da coordenação ou de casa.",
+  },
+  {
+    q: "Meus dados ficam seguros?",
+    a: "Sim. Login e banco de dados rodam em infraestrutura própria (Supabase), com acesso isolado por conta — os dados de uma escola nunca aparecem para outra.",
+  },
+  {
+    q: "Dá pra ajustar a grade depois de gerada?",
+    a: "Dá. Qualquer aula pode ser arrastada pra outro horário na hora — o resto da grade continua intacto.",
+  },
+  {
+    q: "E quando o piloto acabar, eu perco meus dados?",
+    a: "Não. Suas turmas, professores e disciplinas continuam com você quando migrarmos pra um plano pago — só a cobrança muda.",
+  },
+]
+
 function formatBRL(value: number) {
   return value.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
 }
@@ -252,31 +304,25 @@ export default function LandingPage() {
   useSEO({
     title: `${APP_NAME} — Gerador de horário escolar automático`,
     description:
-      "Crie a grade horária da sua escola em minutos. Geração automática, sem conflitos de professores, com planos a partir de R$ 49,90/mês.",
+      "Crie a grade horária da sua escola em minutos. Geração automática, sem conflitos de professores ou turmas.",
     path: "/",
   })
 
   const [ciclo, setCiclo] = useState<"mensal" | "anual">("mensal")
+  const [openFaq, setOpenFaq] = useState<number | null>(0)
   const location = useLocation()
   const navigate = useNavigate()
   const { user } = useAuth()
-  const [checkoutLoading, setCheckoutLoading] = useState<PlanId | null>(null)
-  const [checkoutError, setCheckoutError] = useState<string | null>(null)
 
-  const handleEscolherPlano = async (planId: PlanId) => {
+  // Checkout do Mercado Pago desativado temporariamente — o caminho de
+  // pagamento está sendo reestruturado. Os botões de plano pago levam pro
+  // cadastro/painel como o "Teste grátis", sem cobrar nada por enquanto.
+  const handleEscolherPlano = (planId: PlanId) => {
     if (!user) {
       navigate(`/login?modo=cadastro&plano=${planId}`)
       return
     }
-    setCheckoutError(null)
-    setCheckoutLoading(planId)
-    const result = await createCheckoutSession(planId)
-    setCheckoutLoading(null)
-    if (!result.ok || !result.initPoint) {
-      setCheckoutError(result.error ?? "Não foi possível iniciar o pagamento.")
-      return
-    }
-    window.location.href = result.initPoint
+    navigate("/app")
   }
 
   useEffect(() => {
@@ -377,6 +423,106 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* SYSTEM TOUR — mockups das telas reais, complementando os ícones da seção de recursos */}
+      <section id="sistema" className="border-y border-stone-900/10 bg-white py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="font-landing-display text-3xl font-bold text-stone-950 sm:text-4xl">
+              Por dentro do sistema
+            </h2>
+            <p className="mt-3 text-stone-500">
+              Não é só uma promessa — é isso que a coordenação vê na tela todos os dias.
+            </p>
+          </div>
+
+          <div className="mt-12 grid gap-6 lg:grid-cols-3">
+            {/* Mockup 1: carga horária */}
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4 }}
+              className="hud-corner border border-stone-900/15 bg-stone-50 p-5 shadow-[6px_6px_0_0_rgba(20,20,23,0.06)]"
+            >
+              <p className="font-landing-mono text-[10px] uppercase tracking-wider text-stone-400">
+                Carga horária · 6º Ano A
+              </p>
+              <div className="mt-4 space-y-2.5">
+                {CARGA_HORARIA_DEMO.map((d) => (
+                  <div key={d.nome} className="flex items-center gap-3 text-sm">
+                    <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${d.color}`} />
+                    <span className="flex-1 text-stone-600">{d.nome}</span>
+                    <span className="flex items-center gap-1.5 font-landing-mono text-xs text-stone-400">
+                      <Minus className="h-3 w-3" /> {d.aulas} <Plus className="h-3 w-3" />
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-4 border-t border-stone-900/10 pt-3 text-xs text-stone-500">
+                Ajuste a carga de cada disciplina em segundos — o motor recalcula tudo sozinho.
+              </p>
+            </motion.div>
+
+            {/* Mockup 2: sem choque de professor entre turmas */}
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4, delay: 0.08 }}
+              className="hud-corner border border-stone-900/15 bg-stone-50 p-5 shadow-[6px_6px_0_0_rgba(20,20,23,0.06)]"
+            >
+              <p className="font-landing-mono text-[10px] uppercase tracking-wider text-stone-400">
+                Segunda-feira · 07:00
+              </p>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                {[
+                  { turma: "6º Ano A", prof: "Ana Souza", color: "bg-brand-500" },
+                  { turma: "6º Ano B", prof: "Bruno Lima", color: "bg-accent-500" },
+                ].map((t) => (
+                  <div key={t.turma} className="border border-stone-900/10 bg-white p-3">
+                    <p className="font-landing-mono text-[9px] uppercase tracking-wider text-stone-400">{t.turma}</p>
+                    <div className={`mt-2 h-6 rounded-[3px] ${t.color}`} />
+                    <p className="mt-2 text-xs text-stone-600">{t.prof}</p>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-4 flex items-center gap-1.5 border-t border-stone-900/10 pt-3 text-xs text-emerald-600">
+                <CheckCircle2 className="h-3.5 w-3.5" /> Nenhum professor escalado duas vezes no mesmo horário.
+              </p>
+            </motion.div>
+
+            {/* Mockup 3: arrastar e soltar */}
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4, delay: 0.16 }}
+              className="hud-corner relative overflow-hidden border border-stone-900/15 bg-stone-50 p-5 shadow-[6px_6px_0_0_rgba(20,20,23,0.06)]"
+            >
+              <p className="font-landing-mono text-[10px] uppercase tracking-wider text-stone-400">
+                Ajuste manual
+              </p>
+              <div className="relative mt-4 h-28">
+                <div className="absolute inset-x-0 top-0 flex items-center justify-between gap-2">
+                  <div className="h-9 flex-1 border border-dashed border-stone-300 bg-white" />
+                  <div className="h-9 flex-1 border border-dashed border-stone-300 bg-white" />
+                </div>
+                <motion.div
+                  animate={{ x: [0, 0, 92, 92, 0], y: [0, 0, 46, 46, 0], opacity: [1, 1, 1, 1, 1] }}
+                  transition={{ duration: 3.2, repeat: Infinity, ease: "easeInOut", times: [0, 0.2, 0.5, 0.8, 1] }}
+                  className="absolute left-0 top-0 flex h-9 w-[calc(50%-4px)] items-center justify-center gap-1.5 bg-brand-500 text-xs font-semibold text-white"
+                >
+                  <Move className="h-3.5 w-3.5" /> Português
+                </motion.div>
+              </div>
+              <p className="mt-3 border-t border-stone-900/10 pt-3 text-xs text-stone-500">
+                Não gostou de um horário? Arraste a aula pra outro slot — sem refazer a grade inteira.
+              </p>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
       {/* HOW IT WORKS */}
       <section id="como-funciona" className="border-y border-stone-900/10 bg-white py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -414,7 +560,64 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* PRICING */}
+      {/* PILOT PROGRAM — ocupa o lugar da seção de preços enquanto ela está
+          desativada (ver MVP_SEM_LIMITES). */}
+      {MVP_SEM_LIMITES && (
+      <section id="piloto" className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-2xl text-center">
+          <span className="inline-flex items-center gap-1.5 border border-brand-200 bg-brand-50 px-3 py-1 font-landing-mono text-[10px] uppercase tracking-wider text-brand-600">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand-500" />
+            Fase piloto
+          </span>
+          <h2 className="mt-4 font-landing-display text-3xl font-bold text-stone-950 sm:text-4xl">
+            Estamos testando com as primeiras escolas — sem custo
+          </h2>
+          <p className="mt-3 text-stone-500">
+            Enquanto ajustamos o produto com o uso real da sua rotina, escolas piloto usam o {APP_NAME} de graça e
+            ajudam a decidir o que vem a seguir.
+          </p>
+        </div>
+
+        <div className="mt-12 grid gap-6 md:grid-cols-3">
+          {PILOT_BENEFITS.map((b, i) => (
+            <motion.div
+              key={b.title}
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              whileHover={{ y: -4 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.4, delay: i * 0.08 }}
+              className="border border-stone-900/12 bg-white p-6 shadow-[6px_6px_0_0_rgba(20,20,23,0.06)] transition-shadow duration-300 hover:shadow-[8px_8px_0_0_var(--color-brand-500)]"
+            >
+              <div className="flex h-10 w-10 items-center justify-center border border-stone-900/10 bg-stone-50 text-brand-600">
+                <b.icon className="h-5 w-5" strokeWidth={2.25} />
+              </div>
+              <h3 className="mt-4 font-landing-display text-lg font-semibold text-stone-950">{b.title}</h3>
+              <p className="mt-2 text-sm text-stone-500">{b.desc}</p>
+            </motion.div>
+          ))}
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+          className="mt-10 flex justify-center"
+        >
+          <Link
+            to="/login?modo=cadastro"
+            className="group inline-flex items-center gap-2 bg-stone-950 px-6 py-3.5 text-sm font-semibold text-white shadow-[4px_4px_0_0_var(--color-brand-500)] transition-all hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_var(--color-brand-500)]"
+          >
+            Quero testar na minha escola <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+          </Link>
+        </motion.div>
+      </section>
+      )}
+
+      {/* PRICING — tirado do ar temporariamente (MVP com escolas piloto, sem
+          cobrança). Reative removendo esta condição quando voltar a vender. */}
+      {!MVP_SEM_LIMITES && (
       <section id="planos" className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="font-landing-display text-3xl font-bold text-stone-950 sm:text-4xl">Planos para cada tamanho de escola</h2>
@@ -517,14 +720,12 @@ export default function LandingPage() {
               <button
                 type="button"
                 onClick={() => handleEscolherPlano(plan.id)}
-                disabled={checkoutLoading !== null}
-                className={`mt-8 inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-60 ${
+                className={`mt-8 inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold transition-colors ${
                   plan.highlight
                     ? "bg-stone-950 text-white hover:bg-stone-800"
                     : "border border-stone-900/15 text-stone-700 hover:border-brand-400 hover:text-brand-600"
                 }`}
               >
-                {checkoutLoading === plan.id && <Loader2 className="h-4 w-4 animate-spin" />}
                 Escolher {plan.name}
               </button>
             </motion.div>
@@ -532,13 +733,58 @@ export default function LandingPage() {
           })}
         </div>
 
-        {checkoutError && (
-          <p className="mt-4 text-center text-sm text-rose-600">{checkoutError}</p>
-        )}
-
         <p className="mt-6 text-center font-landing-mono text-xs text-stone-400">
           Pagamento recorrente será processado via Mercado Pago (integração em breve). Cancele quando quiser.
         </p>
+      </section>
+      )}
+
+      {/* FAQ */}
+      <section id="faq" className="border-y border-stone-900/10 bg-white py-20">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="font-landing-display text-3xl font-bold text-stone-950 sm:text-4xl">Perguntas frequentes</h2>
+            <p className="mt-3 text-stone-500">O que toda coordenação pergunta antes de trocar de ferramenta.</p>
+          </div>
+
+          <div className="mt-10 divide-y divide-stone-900/10 border-y border-stone-900/10">
+            {FAQS.map((item, i) => {
+              const isOpen = openFaq === i
+              return (
+                <div key={item.q}>
+                  <button
+                    type="button"
+                    onClick={() => setOpenFaq(isOpen ? null : i)}
+                    className="flex w-full items-center justify-between gap-4 py-5 text-left"
+                    aria-expanded={isOpen}
+                  >
+                    <span className="font-landing-display text-base font-semibold text-stone-950">{item.q}</span>
+                    <motion.span
+                      animate={{ rotate: isOpen ? 180 : 0 }}
+                      transition={{ duration: 0.25 }}
+                      className="shrink-0 text-stone-400"
+                    >
+                      <ChevronDown className="h-5 w-5" />
+                    </motion.span>
+                  </button>
+                  <AnimatePresence initial={false}>
+                    {isOpen && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.25, ease: "easeInOut" }}
+                        className="overflow-hidden"
+                      >
+                        <p className="pb-5 text-sm text-stone-500">{item.a}</p>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              )
+            })}
+          </div>
+        </div>
       </section>
 
       {/* CTA */}

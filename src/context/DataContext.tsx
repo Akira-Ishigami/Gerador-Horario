@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
 import { DISCIPLINAS, PROFESSORES, TURMAS_INICIAIS, type Disciplina, type Professor, type Turma } from "@/data/mockData"
 import { useAuth } from "@/context/AuthContext"
-import { getPlan } from "@/config/branding"
+import { getPlan, MVP_SEM_LIMITES } from "@/config/branding"
 
 interface DataContextValue {
   turmas: Turma[]
@@ -89,7 +89,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [disciplinasKey, disciplinas])
 
-  const maxTurmas = user ? getPlan(user.plan).maxTurmas : null
+  const maxTurmas = MVP_SEM_LIMITES ? null : user ? getPlan(user.plan).maxTurmas : null
   const limiteAtingido = maxTurmas !== null && turmas.length >= maxTurmas
 
   const addTurma: DataContextValue["addTurma"] = (turma) => {

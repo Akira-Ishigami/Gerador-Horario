@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom"
 import { Crown, Medal, Award, Sparkles } from "lucide-react"
-import { getPlan, type PlanId } from "@/config/branding"
+import { getPlan, MVP_SEM_LIMITES, type PlanId } from "@/config/branding"
 
 const PLAN_STYLE: Record<PlanId, { icon: typeof Crown; ring: string; text: string; bar: string }> = {
   teste: {
@@ -38,7 +38,7 @@ export function PlanBadge({ planId, turmasUsadas }: PlanBadgeProps) {
   const plan = getPlan(planId)
   const style = PLAN_STYLE[planId]
   const Icon = style.icon
-  const max = plan.maxTurmas
+  const max = MVP_SEM_LIMITES ? null : plan.maxTurmas
   const pct = max ? Math.min(100, (turmasUsadas / max) * 100) : 18
   const proximoLimite = max !== null && turmasUsadas >= max
 

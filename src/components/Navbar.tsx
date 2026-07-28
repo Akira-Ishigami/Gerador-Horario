@@ -4,11 +4,14 @@ import { motion } from "framer-motion"
 import { ArrowRight, CalendarClock, Menu, X, Zap } from "lucide-react"
 import { APP_NAME } from "@/config/branding"
 
+// Seção de planos/preços tirada do ar temporariamente (MVP com escolas piloto,
+// sem cobrança) — ver MVP_SEM_LIMITES em config/branding.ts.
 const LINKS = [
   { href: "#problema", label: "O problema" },
   { href: "#recursos", label: "Recursos" },
+  { href: "#sistema", label: "Por dentro" },
   { href: "#como-funciona", label: "Como funciona" },
-  { href: "#planos", label: "Planos" },
+  { href: "#faq", label: "Dúvidas" },
 ]
 
 export function Navbar() {
@@ -56,7 +59,7 @@ export function Navbar() {
             {APP_NAME}
           </Link>
 
-          <nav className="hidden items-center gap-8 md:flex">
+          <nav className="hidden items-center gap-8 lg:flex">
             {LINKS.map((link, i) => (
               <a
                 key={link.href}
@@ -71,7 +74,7 @@ export function Navbar() {
             ))}
           </nav>
 
-          <div className="hidden items-center gap-3 md:flex">
+          <div className="hidden items-center gap-3 lg:flex">
             <Link to="/login" className="rounded-lg px-3 py-2 text-sm font-medium text-stone-700 hover:text-stone-950">
               Entrar
             </Link>
@@ -85,7 +88,7 @@ export function Navbar() {
 
           <button
             type="button"
-            className="flex items-center justify-center rounded-lg p-2 text-stone-700 md:hidden"
+            className="flex items-center justify-center rounded-lg p-2 text-stone-700 lg:hidden"
             onClick={() => setOpen((o) => !o)}
             aria-label="Abrir menu"
           >
@@ -94,7 +97,7 @@ export function Navbar() {
         </div>
 
         {open && (
-          <div className="border-t border-stone-900/10 bg-stone-50 px-4 py-4 md:hidden">
+          <div className="border-t border-stone-900/10 bg-stone-50 px-4 py-4 lg:hidden">
             <nav className="flex flex-col gap-3">
               {LINKS.map((link) => (
                 <a

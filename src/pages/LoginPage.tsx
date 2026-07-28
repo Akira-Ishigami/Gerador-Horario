@@ -3,11 +3,8 @@ import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom"
 import { motion } from "framer-motion"
 import { CalendarClock, Eye, EyeOff, Lock, Mail, ShieldCheck, User as UserIcon, Zap } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
-import { APP_NAME, APP_TAGLINE, type PlanId } from "@/config/branding"
-import { createCheckoutSession } from "@/services/payment"
+import { APP_NAME, APP_TAGLINE } from "@/config/branding"
 import { useSEO } from "@/hooks/useSEO"
-
-const PAID_PLAN_IDS: PlanId[] = ["bronze", "prata", "ouro"]
 
 const MINI_GRID_COLORS = ["bg-brand-400", "bg-accent-400", "bg-emerald-400", "bg-brand-200"]
 
@@ -60,18 +57,10 @@ export default function LoginPage() {
     return <Navigate to="/app" replace />
   }
 
-  // Se veio de um botão de plano na landing (?plano=bronze), continua direto
-  // pro checkout do Mercado Pago em vez de só cair no painel.
+  // Checkout do Mercado Pago desativado temporariamente — o caminho de
+  // pagamento está sendo reestruturado. Por enquanto sempre cai no painel,
+  // mesmo vindo de um botão de plano pago (?plano=bronze) na landing.
   const goToAppOrCheckout = async () => {
-    const planoParam = searchParams.get("plano")
-    if (planoParam && PAID_PLAN_IDS.includes(planoParam as PlanId)) {
-      const result = await createCheckoutSession(planoParam as PlanId)
-      if (result.ok && result.initPoint) {
-        window.location.href = result.initPoint
-        return
-      }
-      setError(result.error ?? "Conta criada, mas não foi possível iniciar o pagamento. Escolha o plano novamente no painel.")
-    }
     navigate("/app")
   }
 
