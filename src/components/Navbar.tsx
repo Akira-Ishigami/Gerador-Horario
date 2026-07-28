@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom"
-import { motion } from "framer-motion"
-import { ArrowRight, CalendarClock, User, Zap } from "lucide-react"
+import { CalendarClock, User } from "lucide-react"
 import { APP_NAME } from "@/config/branding"
 
 // Seção de planos/preços tirada do ar temporariamente (MVP com escolas piloto,
@@ -16,36 +15,6 @@ const LINKS = [
 export function Navbar() {
   return (
     <header className="sticky top-0 z-50 font-landing-sans">
-      <Link
-        to="/login?modo=cadastro"
-        className="group relative hidden items-center justify-center gap-2 overflow-hidden bg-stone-950 px-4 py-2.5 text-center font-landing-mono text-sm font-bold uppercase tracking-wide text-white sm:flex"
-      >
-        <span className="animate-shimmer pointer-events-none absolute inset-y-0 left-0 w-1/3 -skew-x-12 bg-white/10" />
-        <motion.span
-          animate={{ scale: [1, 1.25, 1], rotate: [0, -10, 10, 0] }}
-          transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-        >
-          <Zap className="h-4 w-4 shrink-0 fill-signal-400 text-signal-400" />
-        </motion.span>
-        <span className="flex items-baseline gap-1.5">
-          <span>Sem cartão de crédito —</span>
-          <motion.span
-            animate={{ y: [0, -4, 0] }}
-            transition={{ duration: 1.1, repeat: Infinity, ease: "easeInOut" }}
-            className="font-landing-display text-lg font-black tracking-normal text-signal-400"
-          >
-            VENHA
-          </motion.span>
-          <span>gerar seus horários automaticamente</span>
-        </span>
-        <motion.span
-          animate={{ x: [0, 5, 0] }}
-          transition={{ duration: 1.1, repeat: Infinity, ease: "easeInOut" }}
-        >
-          <ArrowRight className="h-3.5 w-3.5 shrink-0" />
-        </motion.span>
-      </Link>
-
       <div className="border-b border-stone-900/10 bg-stone-50/80 backdrop-blur-lg">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link to="/" className="group flex items-center gap-2.5 font-landing-display text-lg font-bold text-stone-900">
