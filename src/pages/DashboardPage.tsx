@@ -219,7 +219,7 @@ export default function DashboardPage() {
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
+        <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
           {/* Sidebar: navegação */}
           <aside className="space-y-4 print:hidden">
             <PlanBadge planId={user.plan} turmasUsadas={turmas.length} />

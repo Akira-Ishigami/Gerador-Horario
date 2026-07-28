@@ -84,6 +84,11 @@ html.dark {
 
 html {
   scroll-behavior: smooth;
+  /* `clip` (não `hidden`) evita a barra de rolagem horizontal fantasma que
+     elementos animados via transform (framer-motion) geram no scrollWidth
+     do documento — diferente de `hidden`, `clip` não cria um "scroll
+     container" e por isso não quebra position: sticky no header. */
+  overflow-x: clip;
 }
 
 body {
