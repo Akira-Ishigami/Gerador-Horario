@@ -21,7 +21,7 @@ export function Navbar() {
     <header className="sticky top-0 z-50 font-landing-sans">
       <Link
         to="/login?modo=cadastro"
-        className="group relative flex items-center justify-center gap-2 overflow-hidden bg-stone-950 px-4 py-2.5 text-center font-landing-mono text-xs font-bold uppercase tracking-wide text-white sm:text-sm"
+        className="group relative hidden items-center justify-center gap-2 overflow-hidden bg-stone-950 px-4 py-2.5 text-center font-landing-mono text-sm font-bold uppercase tracking-wide text-white sm:flex"
       >
         <span className="animate-shimmer pointer-events-none absolute inset-y-0 left-0 w-1/3 -skew-x-12 bg-white/10" />
         <motion.span
@@ -31,16 +31,15 @@ export function Navbar() {
           <Zap className="h-4 w-4 shrink-0 fill-signal-400 text-signal-400" />
         </motion.span>
         <span className="flex items-baseline gap-1.5">
-          <span className="hidden sm:inline">Teste grátis, sem cartão —</span>
+          <span>Sem cartão de crédito —</span>
           <motion.span
             animate={{ y: [0, -4, 0] }}
             transition={{ duration: 1.1, repeat: Infinity, ease: "easeInOut" }}
-            className="font-landing-display text-sm font-black tracking-normal text-signal-400 sm:text-lg"
+            className="font-landing-display text-lg font-black tracking-normal text-signal-400"
           >
             VENHA
           </motion.span>
-          <span className="hidden sm:inline">gerar seus horários automaticamente</span>
-          <span className="sm:hidden">gerar seus horários!</span>
+          <span>gerar seus horários automaticamente</span>
         </span>
         <motion.span
           animate={{ x: [0, 5, 0] }}

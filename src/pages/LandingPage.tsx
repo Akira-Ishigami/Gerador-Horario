@@ -124,7 +124,7 @@ function Hero() {
           </div>
 
           <div className="mt-8 flex items-center gap-2 font-landing-mono text-xs uppercase tracking-wide text-stone-400">
-            <CheckCircle2 className="h-4 w-4 text-emerald-500" /> Sem cartão de crédito para testar
+            <CheckCircle2 className="h-4 w-4 text-emerald-500" /> Sem cartão de crédito
           </div>
         </motion.div>
 
@@ -825,7 +825,7 @@ export default function LandingPage() {
               to="/login?modo=cadastro"
               className="group relative mt-8 inline-flex items-center gap-2 bg-stone-950 px-6 py-3.5 text-sm font-semibold text-white shadow-[4px_4px_0_0_var(--color-brand-500)] transition-all hover:-translate-y-0.5 hover:shadow-[6px_6px_0_0_var(--color-brand-500)]"
             >
-              Começar gratuitamente <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              Começar agora <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Link>
           </motion.div>
         </motion.div>

@@ -14,27 +14,32 @@ function App() {
       <AuthProvider>
         <DataProvider>
           <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route
-                path="/app"
-                element={
-                  <ProtectedRoute>
-                    <DashboardPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/pagamento/retorno"
-                element={
-                  <ProtectedRoute>
-                    <PagamentoRetornoPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+            {/* overflow-x-clip contém qualquer elemento decorativo que escape da
+                viewport (círculos orbitando, grids de fundo) sem quebrar
+                position: sticky como overflow no html/body fazia. */}
+            <div className="overflow-x-clip">
+              <Routes>
+                <Route path="/" element={<LandingPage />} />
+                <Route path="/login" element={<LoginPage />} />
+                <Route
+                  path="/app"
+                  element={
+                    <ProtectedRoute>
+                      <DashboardPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/pagamento/retorno"
+                  element={
+                    <ProtectedRoute>
+                      <PagamentoRetornoPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </div>
           </BrowserRouter>
         </DataProvider>
       </AuthProvider>

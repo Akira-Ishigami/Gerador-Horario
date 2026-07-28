@@ -211,7 +211,7 @@ export default function LoginPage() {
                 mode === "signup" ? "bg-white text-stone-900 shadow-sm" : "text-stone-500"
               }`}
             >
-              Criar conta grátis
+              Criar conta
             </button>
           </div>
 
@@ -222,10 +222,8 @@ export default function LoginPage() {
             </>
           ) : (
             <>
-              <h1 className="mt-6 font-landing-display text-2xl font-bold text-stone-950">Comece grátis</h1>
-              <p className="mt-1 text-sm text-stone-500">
-                Sem cartão de crédito. Sua conta começa no plano Teste grátis (1 turma).
-              </p>
+              <h1 className="mt-6 font-landing-display text-2xl font-bold text-stone-950">Crie sua conta</h1>
+              <p className="mt-1 text-sm text-stone-500">Cadastre sua escola e comece a gerar horários agora.</p>
             </>
           )}
 
@@ -318,15 +316,13 @@ export default function LoginPage() {
               disabled={loading}
               className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-600/30 transition-transform hover:scale-[1.01] hover:bg-brand-700 disabled:opacity-70"
             >
-              {mode === "signup" ? (loading ? "Criando conta..." : "Criar conta grátis") : loading ? "Entrando..." : "Entrar"}
+              {mode === "signup" ? (loading ? "Criando conta..." : "Criar conta") : loading ? "Entrando..." : "Entrar"}
             </button>
           </form>
 
-          <p className="mt-6 text-center text-xs text-stone-400">
-            {mode === "signup"
-              ? "Dados fictícios de demonstração — nenhuma cobrança real é feita."
-              : "Ainda não tem conta? Crie uma grátis em poucos segundos."}
-          </p>
+          {mode === "login" && (
+            <p className="mt-6 text-center text-xs text-stone-400">Ainda não tem conta? Crie uma em poucos segundos.</p>
+          )}
         </motion.div>
       </div>
     </div>
