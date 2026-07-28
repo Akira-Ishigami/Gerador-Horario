@@ -360,17 +360,17 @@ export default function LandingPage() {
       <Hero />
 
       {/* PROBLEM */}
-      <section id="problema" className="border-y border-stone-900/10 bg-white py-20">
+      <section id="problema" className="border-y border-stone-900/10 bg-white py-14 sm:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="font-landing-display text-3xl font-bold text-stone-950 sm:text-4xl">
+            <h2 className="font-landing-display text-2xl font-bold text-stone-950 sm:text-4xl">
               Montar horário no olho custa mais caro do que parece.
             </h2>
             <p className="mt-3 text-stone-500">
               A planilha não avisa quando dois horários colidem — só a coordenação percebe, depois de publicado.
             </p>
           </div>
-          <div className="mt-12 grid gap-6 md:grid-cols-3">
+          <div className="mt-8 sm:mt-12 grid gap-6 md:grid-cols-3">
             {PROBLEMS.map((p, i) => (
               <motion.div
                 key={p.stat}
@@ -379,7 +379,7 @@ export default function LandingPage() {
                 whileHover={{ y: -4 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: i * 0.05 }}
-                className="group border border-stone-900/12 bg-stone-50 p-6 shadow-[6px_6px_0_0_rgba(20,20,23,0.06)] transition-shadow duration-300 hover:shadow-[8px_8px_0_0_var(--color-signal-500)]"
+                className="group border border-stone-900/12 bg-stone-50 p-5 shadow-[6px_6px_0_0_rgba(20,20,23,0.06)] transition-shadow duration-300 hover:shadow-[8px_8px_0_0_var(--color-signal-500)] sm:p-6"
               >
                 <motion.div
                   whileHover={{ rotate: -8, scale: 1.1 }}
@@ -388,7 +388,7 @@ export default function LandingPage() {
                 >
                   <p.icon className="h-5 w-5 text-signal-500" strokeWidth={2.25} />
                 </motion.div>
-                <p className="mt-4 font-landing-display text-3xl font-bold text-stone-950">{p.stat}</p>
+                <p className="mt-4 font-landing-display text-2xl font-bold text-stone-950 sm:text-3xl">{p.stat}</p>
                 <p className="mt-2 text-sm text-stone-500">{p.desc}</p>
               </motion.div>
             ))}
@@ -397,12 +397,12 @@ export default function LandingPage() {
       </section>
 
       {/* FEATURES */}
-      <section id="recursos" className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+      <section id="recursos" className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="font-landing-display text-3xl font-bold text-stone-950 sm:text-4xl">Tudo que a coordenação precisa</h2>
+          <h2 className="font-landing-display text-2xl font-bold text-stone-950 sm:text-4xl">Tudo que a coordenação precisa</h2>
           <p className="mt-3 text-stone-500">Construído para escolas que querem parar de montar horário em planilha.</p>
         </div>
-        <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-8 sm:mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map((f, i) => (
             <motion.div
               key={f.title}
@@ -410,7 +410,7 @@ export default function LandingPage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.4, delay: i * 0.05 }}
-              className="group relative border border-stone-900/12 bg-white p-6 shadow-[6px_6px_0_0_rgba(20,20,23,0.06)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[8px_8px_0_0_var(--color-brand-500)]"
+              className="group relative border border-stone-900/12 bg-white p-5 shadow-[6px_6px_0_0_rgba(20,20,23,0.06)] sm:p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-[8px_8px_0_0_var(--color-brand-500)]"
             >
               <span className="absolute right-4 top-4 font-landing-mono text-[10px] text-stone-300">0{i + 1}</span>
               <div className="flex h-11 w-11 items-center justify-center border border-stone-900/10 bg-stone-50 text-brand-600 transition-colors duration-300 group-hover:bg-brand-600 group-hover:text-white">
@@ -424,10 +424,10 @@ export default function LandingPage() {
       </section>
 
       {/* SYSTEM TOUR — mockups das telas reais, complementando os ícones da seção de recursos */}
-      <section id="sistema" className="border-y border-stone-900/10 bg-white py-20">
+      <section id="sistema" className="border-y border-stone-900/10 bg-white py-14 sm:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="font-landing-display text-3xl font-bold text-stone-950 sm:text-4xl">
+            <h2 className="font-landing-display text-2xl font-bold text-stone-950 sm:text-4xl">
               Por dentro do sistema
             </h2>
             <p className="mt-3 text-stone-500">
@@ -435,14 +435,14 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="mt-12 grid gap-6 lg:grid-cols-3">
+          <div className="mt-8 sm:mt-12 grid gap-6 lg:grid-cols-3">
             {/* Mockup 1: carga horária */}
             <motion.div
               initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.4 }}
-              className="hud-corner border border-stone-900/15 bg-stone-50 p-5 shadow-[6px_6px_0_0_rgba(20,20,23,0.06)]"
+              className="hud-corner border border-stone-900/15 bg-stone-50 p-4 shadow-[6px_6px_0_0_rgba(20,20,23,0.06)] sm:p-5"
             >
               <p className="font-landing-mono text-[10px] uppercase tracking-wider text-stone-400">
                 Carga horária · 6º Ano A
@@ -469,7 +469,7 @@ export default function LandingPage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.4, delay: 0.08 }}
-              className="hud-corner border border-stone-900/15 bg-stone-50 p-5 shadow-[6px_6px_0_0_rgba(20,20,23,0.06)]"
+              className="hud-corner border border-stone-900/15 bg-stone-50 p-4 shadow-[6px_6px_0_0_rgba(20,20,23,0.06)] sm:p-5"
             >
               <p className="font-landing-mono text-[10px] uppercase tracking-wider text-stone-400">
                 Segunda-feira · 07:00
@@ -497,7 +497,7 @@ export default function LandingPage() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.4, delay: 0.16 }}
-              className="hud-corner relative overflow-hidden border border-stone-900/15 bg-stone-50 p-5 shadow-[6px_6px_0_0_rgba(20,20,23,0.06)]"
+              className="hud-corner relative overflow-hidden border border-stone-900/15 bg-stone-50 p-4 shadow-[6px_6px_0_0_rgba(20,20,23,0.06)] sm:p-5"
             >
               <p className="font-landing-mono text-[10px] uppercase tracking-wider text-stone-400">
                 Ajuste manual
@@ -524,13 +524,13 @@ export default function LandingPage() {
       </section>
 
       {/* HOW IT WORKS */}
-      <section id="como-funciona" className="border-y border-stone-900/10 bg-white py-20">
+      <section id="como-funciona" className="border-y border-stone-900/10 bg-white py-14 sm:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="font-landing-display text-3xl font-bold text-stone-950 sm:text-4xl">Três passos, não três semanas</h2>
+            <h2 className="font-landing-display text-2xl font-bold text-stone-950 sm:text-4xl">Três passos, não três semanas</h2>
             <p className="mt-3 text-stone-500">Da planilha bagunçada até a grade publicada.</p>
           </div>
-          <div className="relative mt-12 grid gap-8 md:grid-cols-3">
+          <div className="relative mt-8 sm:mt-12 grid gap-8 md:grid-cols-3">
             <motion.div
               initial={{ scaleX: 0 }}
               whileInView={{ scaleX: 1 }}
@@ -547,7 +547,7 @@ export default function LandingPage() {
                 whileHover={{ y: -4 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: i * 0.12 }}
-                className="relative border border-stone-900/12 bg-stone-50 p-6 shadow-[6px_6px_0_0_rgba(20,20,23,0.06)] transition-shadow duration-300 hover:shadow-[8px_8px_0_0_var(--color-accent-500)]"
+                className="relative border border-stone-900/12 bg-stone-50 p-5 shadow-[6px_6px_0_0_rgba(20,20,23,0.06)] transition-shadow duration-300 hover:shadow-[8px_8px_0_0_var(--color-accent-500)] sm:p-6"
               >
                 <span className="flex h-7 w-7 items-center justify-center border border-brand-200 bg-white font-landing-mono text-sm font-semibold text-brand-500">
                   {i + 1}
@@ -563,13 +563,13 @@ export default function LandingPage() {
       {/* PILOT PROGRAM — ocupa o lugar da seção de preços enquanto ela está
           desativada (ver MVP_SEM_LIMITES). */}
       {MVP_SEM_LIMITES && (
-      <section id="piloto" className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+      <section id="piloto" className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <span className="inline-flex items-center gap-1.5 border border-brand-200 bg-brand-50 px-3 py-1 font-landing-mono text-[10px] uppercase tracking-wider text-brand-600">
             <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand-500" />
             Fase piloto
           </span>
-          <h2 className="mt-4 font-landing-display text-3xl font-bold text-stone-950 sm:text-4xl">
+          <h2 className="mt-4 font-landing-display text-2xl font-bold text-stone-950 sm:text-4xl">
             Estamos testando com as primeiras escolas — sem custo
           </h2>
           <p className="mt-3 text-stone-500">
@@ -578,7 +578,7 @@ export default function LandingPage() {
           </p>
         </div>
 
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
+        <div className="mt-8 sm:mt-12 grid gap-6 md:grid-cols-3">
           {PILOT_BENEFITS.map((b, i) => (
             <motion.div
               key={b.title}
@@ -587,7 +587,7 @@ export default function LandingPage() {
               whileHover={{ y: -4 }}
               viewport={{ once: true }}
               transition={{ duration: 0.4, delay: i * 0.08 }}
-              className="border border-stone-900/12 bg-white p-6 shadow-[6px_6px_0_0_rgba(20,20,23,0.06)] transition-shadow duration-300 hover:shadow-[8px_8px_0_0_var(--color-brand-500)]"
+              className="border border-stone-900/12 bg-white p-5 shadow-[6px_6px_0_0_rgba(20,20,23,0.06)] sm:p-6 transition-shadow duration-300 hover:shadow-[8px_8px_0_0_var(--color-brand-500)]"
             >
               <div className="flex h-10 w-10 items-center justify-center border border-stone-900/10 bg-stone-50 text-brand-600">
                 <b.icon className="h-5 w-5" strokeWidth={2.25} />
@@ -618,9 +618,9 @@ export default function LandingPage() {
       {/* PRICING — tirado do ar temporariamente (MVP com escolas piloto, sem
           cobrança). Reative removendo esta condição quando voltar a vender. */}
       {!MVP_SEM_LIMITES && (
-      <section id="planos" className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8">
+      <section id="planos" className="mx-auto max-w-7xl px-4 py-14 sm:px-6 sm:py-20 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="font-landing-display text-3xl font-bold text-stone-950 sm:text-4xl">Planos para cada tamanho de escola</h2>
+          <h2 className="font-landing-display text-2xl font-bold text-stone-950 sm:text-4xl">Planos para cada tamanho de escola</h2>
           <p className="mt-3 text-stone-500">Comece pequeno e cresça sem trocar de ferramenta.</p>
 
           <div className="relative mt-6 inline-flex items-center gap-1 border border-stone-900/15 bg-white p-1">
@@ -661,7 +661,7 @@ export default function LandingPage() {
           </div>
         </div>
 
-        <div className="mt-12 grid gap-6 md:grid-cols-3">
+        <div className="mt-8 sm:mt-12 grid gap-6 md:grid-cols-3">
           {PAID_PLANS.map((plan, i) => {
             const Icon = PLAN_ICON[plan.id as keyof typeof PLAN_ICON]
             return (
@@ -672,7 +672,7 @@ export default function LandingPage() {
               whileHover={{ y: -4, scale: 1.01 }}
               viewport={{ once: true }}
               transition={{ duration: 0.4, delay: i * 0.08 }}
-              className={`relative flex flex-col bg-white p-8 transition-shadow duration-300 ${
+              className={`relative flex flex-col bg-white p-6 transition-shadow duration-300 sm:p-8 ${
                 plan.highlight
                   ? "border border-brand-500 shadow-[8px_8px_0_0_var(--color-brand-500)]"
                   : "border border-stone-900/12 shadow-[6px_6px_0_0_rgba(20,20,23,0.06)] hover:shadow-[8px_8px_0_0_rgba(20,20,23,0.12)]"
@@ -740,10 +740,10 @@ export default function LandingPage() {
       )}
 
       {/* FAQ */}
-      <section id="faq" className="border-y border-stone-900/10 bg-white py-20">
+      <section id="faq" className="border-y border-stone-900/10 bg-white py-14 sm:py-20">
         <div className="mx-auto max-w-3xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
-            <h2 className="font-landing-display text-3xl font-bold text-stone-950 sm:text-4xl">Perguntas frequentes</h2>
+            <h2 className="font-landing-display text-2xl font-bold text-stone-950 sm:text-4xl">Perguntas frequentes</h2>
             <p className="mt-3 text-stone-500">O que toda coordenação pergunta antes de trocar de ferramenta.</p>
           </div>
 
@@ -802,7 +802,7 @@ export default function LandingPage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.4, delay: 0.1 }}
-            className="relative font-landing-display text-3xl font-bold text-stone-950 sm:text-4xl"
+            className="relative font-landing-display text-2xl font-bold text-stone-950 sm:text-4xl"
           >
             Pronto para acabar com a planilha de horários?
           </motion.h2>
