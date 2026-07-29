@@ -134,7 +134,7 @@ export default function DashboardPage() {
     return saved ? JSON.parse(saved) : null
   })
   const [salvo, setSalvo] = useState(false)
-  const [tab, setTab] = useState<TabId>("grade-escolar")
+  const [tab, setTab] = useState<TabId>("carga-horaria")
   const [filtroTurmaId, setFiltroTurmaId] = useState<string>("todos")
   const [printTargetId, setPrintTargetId] = useState<string | null>(null)
 
