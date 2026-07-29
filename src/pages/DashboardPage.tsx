@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useState } from "react"
 import { Link } from "react-router-dom"
 import {
   AlertTriangle,
@@ -188,31 +188,6 @@ export default function DashboardPage() {
 
   const turmasCargaHoraria = selectedId === "todos" ? turmas : turmas.filter((t) => t.id === selectedId)
   const turmasFiltradas = filtroTurmaId === "todos" ? turmas : turmas.filter((t) => t.id === filtroTurmaId)
-
-  // Turmas (e disciplina) que cada professor está de fato lecionando na
-  // última grade gerada — derivado, não é dado próprio do professor.
-  const turmasPorProfessor = useMemo(() => {
-    const map = new Map<string, { turma: string; disciplina: string }[]>()
-    if (!schedule) return map
-    for (const turma of turmas) {
-      const grade = schedule.grades[turma.id]
-      if (!grade) continue
-      const vistos = new Set<string>()
-      for (const linha of grade) {
-        for (const slot of linha) {
-          if (!slot) continue
-          const key = `${slot.professorId}-${slot.disciplinaId}`
-          if (vistos.has(key)) continue
-          vistos.add(key)
-          const disciplina = disciplinas.find((d) => d.id === slot.disciplinaId)
-          const atual = map.get(slot.professorId) ?? []
-          atual.push({ turma: turma.nome, disciplina: disciplina?.nome ?? slot.disciplinaId })
-          map.set(slot.professorId, atual)
-        }
-      }
-    }
-    return map
-  }, [schedule, turmas, disciplinas])
 
   const handleGerar = () => {
     if (!MVP_SEM_LIMITES && user?.plan === "teste" && !registrarGeracao()) return
@@ -646,7 +621,7 @@ export default function DashboardPage() {
 
             {tab === "turmas" && <TurmasManager />}
             {tab === "materias" && <MateriasManager />}
-            {tab === "professores" && <ProfessoresManager turmasPorProfessor={turmasPorProfessor} />}
+            {tab === "professores" && <ProfessoresManager />}
             {tab === "configuracoes" && <BlocosManager />}
             {tab === "admin" && user.role === "admin" && <AdminPanel />}
           </section>
