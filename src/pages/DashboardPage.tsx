@@ -279,7 +279,7 @@ export default function DashboardPage() {
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
           {/* Sidebar: navegação */}
-          <aside className="space-y-4 print:hidden">
+          <aside className="space-y-4 self-start print:hidden lg:sticky lg:top-20">
             <PlanBadge planId={user.plan} turmasUsadas={turmas.length} />
 
             {!MVP_SEM_LIMITES && user.plan === "teste" && (
