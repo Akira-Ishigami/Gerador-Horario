@@ -369,7 +369,7 @@ export default function DashboardPage() {
           </aside>
 
           {/* Conteúdo */}
-          <section className="space-y-6">
+          <section className="min-w-0 space-y-6">
             {tab === "carga-horaria" && (
               <>
                 <div className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-900">

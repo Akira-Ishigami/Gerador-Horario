@@ -55,7 +55,7 @@ export function MateriasManager() {
             }
           }}
           placeholder="Ex: Filosofia, Redação, Robótica..."
-          className="w-full max-w-xs rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+          className="w-full min-w-0 max-w-xs rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
         />
         <button
           type="button"
@@ -81,7 +81,7 @@ export function MateriasManager() {
               type="button"
               onClick={() => handleRemove(d.id)}
               aria-label={`Remover ${d.nome}`}
-              className="text-slate-300 opacity-0 transition-opacity hover:text-rose-500 group-hover:opacity-100"
+              className="shrink-0 text-slate-300 transition-colors hover:text-rose-500"
             >
               <Trash2 className="h-4 w-4" />
             </button>
