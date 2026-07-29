@@ -42,6 +42,27 @@ export function PlanBadge({ planId, turmasUsadas }: PlanBadgeProps) {
   const pct = max ? Math.min(100, (turmasUsadas / max) * 100) : 18
   const proximoLimite = max !== null && turmasUsadas >= max
 
+  if (MVP_SEM_LIMITES) {
+    return (
+      <div className="glass w-full max-w-xs rounded-2xl p-4 shadow-lg ring-1 ring-brand-400/40">
+        <div className="flex items-center gap-2">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/80 text-brand-600 dark:bg-white/10 dark:text-brand-400">
+            <Sparkles className="h-4 w-4" strokeWidth={2.25} />
+          </div>
+          <div>
+            <p className="flex items-center gap-1.5 text-xs uppercase tracking-wide text-brand-600 dark:text-brand-400">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-brand-500" />
+              Fase piloto
+            </p>
+            <p className="font-display text-sm font-semibold text-slate-700 dark:text-slate-200">
+              Acesso completo, sem custo
+            </p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className={`glass w-full max-w-xs rounded-2xl p-4 shadow-lg ring-1 ${style.ring}`}>
       <div className="flex items-center justify-between">
