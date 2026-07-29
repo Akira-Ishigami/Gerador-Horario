@@ -41,6 +41,8 @@ export interface Professor {
   id: string
   nome: string
   disciplinaIds: string[]
+  /** turmas em que pode dar aula; lista vazia = qualquer turma que precise da disciplina */
+  turmaIds: string[]
 }
 
 export type Periodo = "matutino" | "vespertino" | "noturno" | "integral"

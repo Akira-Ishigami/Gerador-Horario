@@ -8,6 +8,7 @@ import {
   Check,
   Clock,
   GraduationCap,
+  Lightbulb,
   LogOut,
   Minus,
   Plus,
@@ -18,9 +19,11 @@ import {
   Sparkles,
   Timer,
   Users as UsersIcon,
+  X,
 } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
 import { useData } from "@/context/DataContext"
+import { supabase } from "@/lib/supabaseClient"
 import { ThemeToggle } from "@/components/ThemeToggle"
 import { PlanBadge } from "@/components/PlanBadge"
 import { ScheduleGrid } from "@/components/ScheduleGrid"
@@ -44,6 +47,15 @@ const NAV_ITEMS = [
 ] as const
 
 type TabId = (typeof NAV_ITEMS)[number]["id"] | "admin"
+
+const DICAS_GERADOR = [
+  "Cadastre pelo menos um professor pra cada matéria com carga horária — sem professor, a matéria vira conflito.",
+  "Se restringir um professor a turmas específicas (aba Professores), confira se as outras turmas também têm professor disponível pra mesma matéria.",
+  "O gerador sorteia a distribuição — clicou e não gostou do resultado? Clique em \"Gerar horários\" de novo.",
+  "Depois de gerar, arraste qualquer aula pra outro horário livre pra ajustar manualmente.",
+  "Configure o intervalo em \"Configurações\" antes de gerar — o gerador nunca encaixa aula nesse horário.",
+  "Clique em \"Salvar horário\" depois de gerar/ajustar — sem isso a grade some ao trocar de tela ou dispositivo.",
+]
 
 const FREE_GEN_COOLDOWN_MS = 36 * 60 * 60 * 1000
 const FREE_GEN_MAX_USES = 2
@@ -117,7 +129,7 @@ export default function DashboardPage() {
   })
 
   const { user, logout } = useAuth()
-  const { turmas, updateCargaHoraria, professores, disciplinas, blocos } = useData()
+  const { loading: dataLoading, turmas, updateCargaHoraria, professores, disciplinas, blocos } = useData()
   const { remainingMs: freeGenRemaining, usesLeft: freeGenUsesLeft, registrarGeracao } = useFreeGenCooldown(
     !MVP_SEM_LIMITES && user?.plan === "teste" ? user.id : "",
   )
@@ -127,21 +139,17 @@ export default function DashboardPage() {
     return localStorage.getItem(`horaria_onboarded_${user.id}`) === "true"
   })
 
-  const [selectedId, setSelectedId] = useState<string | null>(turmas[0]?.id ?? null)
-  const [schedule, setSchedule] = useState<GeneratedSchedule | null>(() => {
-    if (!user) return null
-    const saved = localStorage.getItem(`horaria_schedule_${user.id}`)
-    return saved ? JSON.parse(saved) : null
-  })
+  const [selectedId, setSelectedId] = useState<string>("todos")
+  const [schedule, setSchedule] = useState<GeneratedSchedule | null>(null)
   const [salvo, setSalvo] = useState(false)
   const [tab, setTab] = useState<TabId>("carga-horaria")
   const [filtroTurmaId, setFiltroTurmaId] = useState<string>("todos")
   const [printTargetId, setPrintTargetId] = useState<string | null>(null)
+  const [mostrarDicas, setMostrarDicas] = useState(() => localStorage.getItem("horaria_dicas_dispensadas") !== "true")
 
   useEffect(() => {
-    if (!selectedId && turmas.length > 0) setSelectedId(turmas[0].id)
-    if (selectedId && !turmas.some((t) => t.id === selectedId)) {
-      setSelectedId(turmas[0]?.id ?? null)
+    if (selectedId !== "todos" && !turmas.some((t) => t.id === selectedId)) {
+      setSelectedId("todos")
     }
   }, [turmas, selectedId])
 
@@ -157,7 +165,28 @@ export default function DashboardPage() {
     setPrintTargetId(null)
   }, [printTargetId])
 
-  const selectedTurma = turmas.find((t) => t.id === selectedId) ?? null
+  useEffect(() => {
+    if (!user) {
+      setSchedule(null)
+      return
+    }
+    let cancelado = false
+    supabase
+      .from("horarios_gerados")
+      .select("grades, conflitos")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelado || !data) return
+        setSchedule({ grades: data.grades, conflitos: data.conflitos })
+      })
+    return () => {
+      cancelado = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id])
+
+  const turmasCargaHoraria = selectedId === "todos" ? turmas : turmas.filter((t) => t.id === selectedId)
   const turmasFiltradas = filtroTurmaId === "todos" ? turmas : turmas.filter((t) => t.id === filtroTurmaId)
 
   // Turmas (e disciplina) que cada professor está de fato lecionando na
@@ -194,7 +223,17 @@ export default function DashboardPage() {
 
   const handleSalvar = () => {
     if (!user || !schedule) return
-    localStorage.setItem(`horaria_schedule_${user.id}`, JSON.stringify(schedule))
+    supabase
+      .from("horarios_gerados")
+      .upsert({
+        user_id: user.id,
+        grades: schedule.grades,
+        conflitos: schedule.conflitos,
+        updated_at: new Date().toISOString(),
+      })
+      .then(({ error }) => {
+        if (error) console.error("Erro ao salvar grade gerada:", error)
+      })
     setSalvo(true)
     setTimeout(() => setSalvo(false), 2500)
   }
@@ -215,6 +254,14 @@ export default function DashboardPage() {
   }
 
   if (!user) return null
+
+  if (dataLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
+      </div>
+    )
+  }
 
   if (!onboarded && turmas.length === 0) {
     return (
@@ -351,6 +398,17 @@ export default function DashboardPage() {
             {tab === "carga-horaria" && (
               <>
                 <div className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-900">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedId("todos")}
+                    className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                      selectedId === "todos"
+                        ? "bg-brand-600 text-white shadow-sm shadow-brand-600/30"
+                        : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10"
+                    }`}
+                  >
+                    Todos
+                  </button>
                   {turmas.map((t) => (
                     <button
                       key={t.id}
@@ -376,44 +434,51 @@ export default function DashboardPage() {
                   )}
                 </div>
 
-                {selectedTurma ? (
-                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900">
-                    <div className="mb-3 flex items-center justify-between">
-                      <h2 className="font-display text-base font-semibold text-slate-800 dark:text-white">
-                        Carga horária semanal · {selectedTurma.nome}
-                      </h2>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                      {disciplinas.map((d) => {
-                        const valor = selectedTurma.cargaHoraria[d.id] ?? 0
-                        return (
-                          <div
-                            key={d.id}
-                            className="rounded-xl border border-slate-100 p-3 transition-all hover:shadow-md dark:border-white/10 dark:hover:bg-white/5"
-                            style={{ borderLeft: `3px solid ${d.cor}` }}
-                          >
-                            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{d.nome}</p>
-                            <div className="mt-1.5 flex items-center justify-between">
-                              <button
-                                type="button"
-                                onClick={() => updateCargaHoraria(selectedTurma.id, d.id, valor - 1)}
-                                className="flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-white/5"
+                {turmasCargaHoraria.length > 0 ? (
+                  <div className="space-y-6">
+                    {turmasCargaHoraria.map((turma) => (
+                      <div
+                        key={turma.id}
+                        className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900"
+                      >
+                        <div className="mb-3 flex items-center justify-between">
+                          <h2 className="font-display text-base font-semibold text-slate-800 dark:text-white">
+                            Carga horária semanal · {turma.nome}
+                          </h2>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                          {disciplinas.map((d) => {
+                            const valor = turma.cargaHoraria[d.id] ?? 0
+                            return (
+                              <div
+                                key={d.id}
+                                className="rounded-xl border border-slate-100 p-3 transition-all hover:shadow-md dark:border-white/10 dark:hover:bg-white/5"
+                                style={{ borderLeft: `3px solid ${d.cor}` }}
                               >
-                                <Minus className="h-3 w-3" />
-                              </button>
-                              <span className="font-display text-sm font-semibold text-slate-800 dark:text-white">{valor}</span>
-                              <button
-                                type="button"
-                                onClick={() => updateCargaHoraria(selectedTurma.id, d.id, valor + 1)}
-                                className="flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-white/5"
-                              >
-                                <Plus className="h-3 w-3" />
-                              </button>
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
+                                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{d.nome}</p>
+                                <div className="mt-1.5 flex items-center justify-between">
+                                  <button
+                                    type="button"
+                                    onClick={() => updateCargaHoraria(turma.id, d.id, valor - 1)}
+                                    className="flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-white/5"
+                                  >
+                                    <Minus className="h-3 w-3" />
+                                  </button>
+                                  <span className="font-display text-sm font-semibold text-slate-800 dark:text-white">{valor}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => updateCargaHoraria(turma.id, d.id, valor + 1)}
+                                    className="flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-white/5"
+                                  >
+                                    <Plus className="h-3 w-3" />
+                                  </button>
+                                </div>
+                              </div>
+                            )
+                          })}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 ) : (
                   <div className="flex h-64 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-200 bg-white/50 text-sm text-slate-400 dark:border-slate-700 dark:bg-white/2">
@@ -426,6 +491,30 @@ export default function DashboardPage() {
 
             {tab === "grade-escolar" && (
               <>
+                {mostrarDicas && (
+                  <div className="relative rounded-2xl border border-brand-200 bg-brand-50 p-4 pr-10 shadow-sm dark:border-brand-900 dark:bg-brand-950/40 print:hidden">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMostrarDicas(false)
+                        localStorage.setItem("horaria_dicas_dispensadas", "true")
+                      }}
+                      aria-label="Dispensar dicas"
+                      className="absolute right-3 top-3 flex h-7 w-7 items-center justify-center rounded-lg text-brand-500 hover:bg-brand-100 dark:text-brand-300 dark:hover:bg-brand-900/40"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                    <div className="flex items-center gap-2 text-sm font-semibold text-brand-800 dark:text-brand-200">
+                      <Lightbulb className="h-4 w-4" /> Dicas pra gerar uma grade melhor
+                    </div>
+                    <ul className="mt-2 ml-5 list-disc space-y-1 text-sm text-brand-700/90 dark:text-brand-300/90">
+                      {DICAS_GERADOR.map((dica) => (
+                        <li key={dica}>{dica}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-900 print:hidden">
                   <div className="flex flex-wrap gap-1.5">
                     <button

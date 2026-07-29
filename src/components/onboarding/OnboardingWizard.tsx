@@ -104,7 +104,7 @@ export function OnboardingWizard({ onFinish }: OnboardingWizardProps) {
   }
 
   const addProfessor = () => {
-    setProfessoresWizard((prev) => [...prev, { id: `p-novo-${Date.now()}-${prev.length}`, nome: "", disciplinaIds: [] }])
+    setProfessoresWizard((prev) => [...prev, { id: `p-novo-${Date.now()}-${prev.length}`, nome: "", disciplinaIds: [], turmaIds: [] }])
   }
 
   const removeProfessor = (index: number) => {

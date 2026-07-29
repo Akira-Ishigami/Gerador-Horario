@@ -54,8 +54,11 @@ export function gerarHorarios(
     grades[turma.id] = emptyGrade(blocos.length)
   }
 
-  const professorPorDisciplina = (disciplinaId: string): Professor[] =>
-    professores.filter((p) => p.disciplinaIds.includes(disciplinaId))
+  // turmaIds vazio = professor aceita qualquer turma que precise da disciplina
+  const professorPorDisciplina = (disciplinaId: string, turmaId: string): Professor[] =>
+    professores.filter(
+      (p) => p.disciplinaIds.includes(disciplinaId) && (p.turmaIds.length === 0 || p.turmaIds.includes(turmaId)),
+    )
 
   for (const turma of turmas) {
     const grade = grades[turma.id]
@@ -64,7 +67,7 @@ export function gerarHorarios(
       .sort((a, b) => b[1] - a[1])
 
     for (const [disciplinaId, quantidade] of necessidades) {
-      const candidatosProfessor = professorPorDisciplina(disciplinaId)
+      const candidatosProfessor = professorPorDisciplina(disciplinaId, turma.id)
       if (candidatosProfessor.length === 0) {
         conflitos.push(
           `Nenhum professor cadastrado para a disciplina "${nomeDisciplina(disciplinaId)}" (${turma.nome}).`,

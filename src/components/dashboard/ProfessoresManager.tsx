@@ -9,7 +9,7 @@ interface ProfessoresManagerProps {
 }
 
 export function ProfessoresManager({ turmasPorProfessor }: ProfessoresManagerProps) {
-  const { professores, setProfessores, disciplinas } = useData()
+  const { professores, setProfessores, disciplinas, turmas } = useData()
   const [novoNome, setNovoNome] = useState("")
 
   const updateProfessor = (index: number, next: Professor) => {
@@ -23,7 +23,7 @@ export function ProfessoresManager({ turmasPorProfessor }: ProfessoresManagerPro
   const handleAdd = () => {
     const nome = novoNome.trim()
     if (!nome) return
-    setProfessores([...professores, { id: `p-${Date.now()}`, nome, disciplinaIds: [] }])
+    setProfessores([...professores, { id: `p-${Date.now()}`, nome, disciplinaIds: [], turmaIds: [] }])
     setNovoNome("")
   }
 
@@ -31,7 +31,7 @@ export function ProfessoresManager({ turmasPorProfessor }: ProfessoresManagerPro
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900">
       <h2 className="font-display text-base font-semibold text-slate-800 dark:text-white">Professores</h2>
       <p className="mb-4 text-xs text-slate-400">
-        Nome e matérias que cada um leciona — usados pelo gerador para alocar as aulas.
+        Nome, matérias e (opcionalmente) turmas de cada um — usados pelo gerador para alocar as aulas.
       </p>
 
       <div className="flex gap-2">
@@ -98,6 +98,37 @@ export function ProfessoresManager({ turmasPorProfessor }: ProfessoresManagerPro
               {disciplinas.length === 0 && (
                 <p className="text-xs text-slate-400">Cadastre matérias primeiro para poder atribuí-las.</p>
               )}
+            </div>
+
+            <div className="mt-3 border-t border-slate-100 pt-3 dark:border-white/10">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                Pode dar aula em <span className="normal-case font-normal text-slate-400">(nenhuma marcada = qualquer turma)</span>
+              </p>
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {turmas.map((t) => {
+                  const active = p.turmaIds.includes(t.id)
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => {
+                        const next = active ? p.turmaIds.filter((id) => id !== t.id) : [...p.turmaIds, t.id]
+                        updateProfessor(i, { ...p, turmaIds: next })
+                      }}
+                      className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                        active
+                          ? "border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300"
+                          : "border-slate-200 text-slate-500 dark:border-slate-700 dark:text-slate-400"
+                      }`}
+                    >
+                      {t.nome}
+                    </button>
+                  )
+                })}
+                {turmas.length === 0 && (
+                  <p className="text-xs text-slate-400">Cadastre turmas primeiro para poder restringir.</p>
+                )}
+              </div>
             </div>
 
             <div className="mt-3 border-t border-slate-100 pt-3 dark:border-white/10">
