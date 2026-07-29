@@ -5,12 +5,12 @@ import {
   ArrowUpCircle,
   BookOpen,
   CalendarClock,
-  Clock,
   GraduationCap,
   LogOut,
   Minus,
   Plus,
   Printer,
+  Settings,
   Shield,
   Sparkles,
   Timer,
@@ -36,6 +36,7 @@ const NAV_ITEMS = [
   { id: "turmas", label: "Turmas", icon: UsersIcon },
   { id: "materias", label: "Matérias", icon: BookOpen },
   { id: "professores", label: "Professores", icon: GraduationCap },
+  { id: "configuracoes", label: "Configurações", icon: Settings },
 ] as const
 
 type TabId = (typeof NAV_ITEMS)[number]["id"] | "admin"
@@ -125,7 +126,6 @@ export default function DashboardPage() {
   const [selectedId, setSelectedId] = useState<string | null>(turmas[0]?.id ?? null)
   const [schedule, setSchedule] = useState<GeneratedSchedule | null>(null)
   const [tab, setTab] = useState<TabId>("horarios")
-  const [mostrarConfigHorarios, setMostrarConfigHorarios] = useState(false)
   const [printTargetId, setPrintTargetId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -350,35 +350,16 @@ export default function DashboardPage() {
                       </button>
                     )}
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setMostrarConfigHorarios((v) => !v)}
-                      className={`flex items-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors ${
-                        mostrarConfigHorarios
-                          ? "border-brand-300 bg-brand-50 text-brand-700 dark:border-brand-800 dark:bg-brand-950/40 dark:text-brand-300"
-                          : "border-slate-200 text-slate-600 hover:border-brand-300 hover:text-brand-600 dark:border-white/10 dark:text-slate-300"
-                      }`}
-                    >
-                      <Clock className="h-4 w-4" /> Horários e intervalo
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleGerar}
-                      disabled={turmas.length === 0 || (user.plan === "teste" && freeGenUsesLeft <= 0)}
-                      className="group flex items-center justify-center gap-2 rounded-xl bg-linear-to-r from-brand-600 to-accent-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-600/30 transition-all hover:scale-[1.01] hover:shadow-xl hover:shadow-brand-600/40 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
-                    >
-                      <Sparkles className="h-4 w-4 transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110" />{" "}
-                      Gerar horários
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={handleGerar}
+                    disabled={turmas.length === 0 || (user.plan === "teste" && freeGenUsesLeft <= 0)}
+                    className="group flex shrink-0 items-center justify-center gap-2 rounded-xl bg-linear-to-r from-brand-600 to-accent-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-600/30 transition-all hover:scale-[1.01] hover:shadow-xl hover:shadow-brand-600/40 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+                  >
+                    <Sparkles className="h-4 w-4 transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110" />{" "}
+                    Gerar horários
+                  </button>
                 </div>
-
-                {mostrarConfigHorarios && (
-                  <div className="print:hidden">
-                    <BlocosManager />
-                  </div>
-                )}
 
                 {schedule && schedule.conflitos.length > 0 && (
                   <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300 print:hidden">
@@ -487,6 +468,7 @@ export default function DashboardPage() {
             {tab === "turmas" && <TurmasManager />}
             {tab === "materias" && <MateriasManager />}
             {tab === "professores" && <ProfessoresManager turmasPorProfessor={turmasPorProfessor} />}
+            {tab === "configuracoes" && <BlocosManager />}
             {tab === "admin" && user.role === "admin" && <AdminPanel />}
           </section>
         </div>
