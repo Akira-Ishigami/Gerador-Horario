@@ -2,8 +2,6 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import {
   BLOCOS_HORARIOS_PADRAO,
   DISCIPLINAS,
-  PROFESSORES,
-  TURMAS_INICIAIS,
   type BlocoHorario,
   type Disciplina,
   type Professor,
@@ -40,15 +38,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
   // lazy init síncrono (não via effect) — evita um primeiro render com
   // turmas=[] pra usuários que já têm dados salvos, o que faria o wizard de
   // onboarding aparecer errado por uma fração de segundo antes de assentar.
+  // Conta nova (sem nada salvo) começa vazia de propósito — turmas/professores
+  // são dados da escola de verdade, não demo, e é o que dispara o wizard.
   const [turmas, setTurmas] = useState<Turma[]>(() => {
     if (!storageKey) return []
     const saved = localStorage.getItem(storageKey)
-    return saved ? JSON.parse(saved) : TURMAS_INICIAIS
+    return saved ? JSON.parse(saved) : []
   })
   const [professores, setProfessoresState] = useState<Professor[]>(() => {
     if (!professoresKey) return []
     const saved = localStorage.getItem(professoresKey)
-    return saved ? JSON.parse(saved) : PROFESSORES
+    return saved ? JSON.parse(saved) : []
   })
   const [disciplinas, setDisciplinasState] = useState<Disciplina[]>(() => {
     if (!disciplinasKey) return []
@@ -67,7 +67,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       return
     }
     const saved = localStorage.getItem(storageKey)
-    setTurmas(saved ? JSON.parse(saved) : TURMAS_INICIAIS)
+    setTurmas(saved ? JSON.parse(saved) : [])
   }, [storageKey])
 
   useEffect(() => {
@@ -82,7 +82,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       return
     }
     const saved = localStorage.getItem(professoresKey)
-    setProfessoresState(saved ? JSON.parse(saved) : PROFESSORES)
+    setProfessoresState(saved ? JSON.parse(saved) : [])
   }, [professoresKey])
 
   useEffect(() => {

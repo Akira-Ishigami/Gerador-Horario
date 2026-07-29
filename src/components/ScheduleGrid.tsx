@@ -30,7 +30,7 @@ export function ScheduleGrid({ grade, blocos, compact = false, onMove }: Schedul
       <table className="w-full border-collapse text-left">
         <thead>
           <tr className="bg-slate-50 dark:bg-white/5">
-            <th className="w-20 border-b border-slate-200 px-2 py-2 text-xs font-semibold text-slate-400 dark:border-white/10">
+            <th className="w-28 border-b border-slate-200 px-2 py-2 text-xs font-semibold text-slate-400 dark:border-white/10">
               Horário
             </th>
             {DIAS_SEMANA.map((dia) => (
@@ -47,8 +47,8 @@ export function ScheduleGrid({ grade, blocos, compact = false, onMove }: Schedul
           {blocos.map((bloco, blocoIdx) =>
             bloco.tipo === "intervalo" ? (
               <tr key={bloco.id} className="bg-amber-50/60 dark:bg-amber-950/20">
-                <td className="border-b border-slate-100 px-2 py-1.5 text-xs font-medium text-amber-700 dark:border-white/10 dark:text-amber-400">
-                  {bloco.horario}
+                <td className="whitespace-nowrap border-b border-slate-100 px-2 py-1.5 text-xs font-medium text-amber-700 dark:border-white/10 dark:text-amber-400">
+                  {bloco.inicio}–{bloco.fim}
                 </td>
                 <td
                   colSpan={DIAS_SEMANA.length}
@@ -59,8 +59,8 @@ export function ScheduleGrid({ grade, blocos, compact = false, onMove }: Schedul
               </tr>
             ) : (
               <tr key={bloco.id} className="dark:even:bg-white/2">
-                <td className="border-b border-slate-100 px-2 py-2 text-xs font-medium text-slate-400 dark:border-white/10">
-                  {bloco.horario}
+                <td className="whitespace-nowrap border-b border-slate-100 px-2 py-2 text-xs font-medium text-slate-400 dark:border-white/10">
+                  {bloco.inicio}–{bloco.fim}
                 </td>
                 {DIAS_SEMANA.map((dia, diaIdx) => {
                   const assignment = grade?.[diaIdx]?.[blocoIdx] ?? null

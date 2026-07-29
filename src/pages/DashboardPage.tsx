@@ -5,11 +5,14 @@ import {
   ArrowUpCircle,
   BookOpen,
   CalendarClock,
+  Check,
+  Clock,
   GraduationCap,
   LogOut,
   Minus,
   Plus,
   Printer,
+  Save,
   Settings,
   Shield,
   Sparkles,
@@ -32,11 +35,12 @@ import { APP_NAME, MVP_SEM_LIMITES } from "@/config/branding"
 import { useSEO } from "@/hooks/useSEO"
 
 const NAV_ITEMS = [
-  { id: "horarios", label: "Horários", icon: Sparkles },
+  { id: "carga-horaria", label: "Carga Horária", icon: Clock },
   { id: "turmas", label: "Turmas", icon: UsersIcon },
   { id: "materias", label: "Matérias", icon: BookOpen },
   { id: "professores", label: "Professores", icon: GraduationCap },
   { id: "configuracoes", label: "Configurações", icon: Settings },
+  { id: "grade-escolar", label: "Grade Escolar", icon: Sparkles },
 ] as const
 
 type TabId = (typeof NAV_ITEMS)[number]["id"] | "admin"
@@ -124,8 +128,14 @@ export default function DashboardPage() {
   })
 
   const [selectedId, setSelectedId] = useState<string | null>(turmas[0]?.id ?? null)
-  const [schedule, setSchedule] = useState<GeneratedSchedule | null>(null)
-  const [tab, setTab] = useState<TabId>("horarios")
+  const [schedule, setSchedule] = useState<GeneratedSchedule | null>(() => {
+    if (!user) return null
+    const saved = localStorage.getItem(`horaria_schedule_${user.id}`)
+    return saved ? JSON.parse(saved) : null
+  })
+  const [salvo, setSalvo] = useState(false)
+  const [tab, setTab] = useState<TabId>("grade-escolar")
+  const [filtroTurmaId, setFiltroTurmaId] = useState<string>("todos")
   const [printTargetId, setPrintTargetId] = useState<string | null>(null)
 
   useEffect(() => {
@@ -136,12 +146,19 @@ export default function DashboardPage() {
   }, [turmas, selectedId])
 
   useEffect(() => {
+    if (filtroTurmaId !== "todos" && !turmas.some((t) => t.id === filtroTurmaId)) {
+      setFiltroTurmaId("todos")
+    }
+  }, [turmas, filtroTurmaId])
+
+  useEffect(() => {
     if (!printTargetId) return
     window.print()
     setPrintTargetId(null)
   }, [printTargetId])
 
   const selectedTurma = turmas.find((t) => t.id === selectedId) ?? null
+  const turmasFiltradas = filtroTurmaId === "todos" ? turmas : turmas.filter((t) => t.id === filtroTurmaId)
 
   // Turmas (e disciplina) que cada professor está de fato lecionando na
   // última grade gerada — derivado, não é dado próprio do professor.
@@ -172,9 +189,18 @@ export default function DashboardPage() {
     if (!MVP_SEM_LIMITES && user?.plan === "teste" && !registrarGeracao()) return
     const result = gerarHorarios(turmas, professores, blocos, disciplinas)
     setSchedule(result)
+    setSalvo(false)
+  }
+
+  const handleSalvar = () => {
+    if (!user || !schedule) return
+    localStorage.setItem(`horaria_schedule_${user.id}`, JSON.stringify(schedule))
+    setSalvo(true)
+    setTimeout(() => setSalvo(false), 2500)
   }
 
   const handleMoveAssignment = (turmaId: string, fromDia: number, fromBloco: number, toDia: number, toBloco: number) => {
+    setSalvo(false)
     setSchedule((prev) => {
       if (!prev) return prev
       const grade = prev.grades[turmaId]
@@ -322,17 +348,104 @@ export default function DashboardPage() {
 
           {/* Conteúdo */}
           <section className="space-y-6">
-            {tab === "horarios" && (
+            {tab === "carga-horaria" && (
+              <>
+                <div className="flex flex-wrap items-center gap-1.5 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-900">
+                  {turmas.map((t) => (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => setSelectedId(t.id)}
+                      className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                        selectedId === t.id
+                          ? "bg-brand-600 text-white shadow-sm shadow-brand-600/30"
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10"
+                      }`}
+                    >
+                      {t.nome}
+                    </button>
+                  ))}
+                  {turmas.length === 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setTab("turmas")}
+                      className="text-sm text-slate-400 underline underline-offset-2 hover:text-brand-600"
+                    >
+                      Nenhuma turma — crie uma em "Turmas"
+                    </button>
+                  )}
+                </div>
+
+                {selectedTurma ? (
+                  <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900">
+                    <div className="mb-3 flex items-center justify-between">
+                      <h2 className="font-display text-base font-semibold text-slate-800 dark:text-white">
+                        Carga horária semanal · {selectedTurma.nome}
+                      </h2>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                      {disciplinas.map((d) => {
+                        const valor = selectedTurma.cargaHoraria[d.id] ?? 0
+                        return (
+                          <div
+                            key={d.id}
+                            className="rounded-xl border border-slate-100 p-3 transition-all hover:shadow-md dark:border-white/10 dark:hover:bg-white/5"
+                            style={{ borderLeft: `3px solid ${d.cor}` }}
+                          >
+                            <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{d.nome}</p>
+                            <div className="mt-1.5 flex items-center justify-between">
+                              <button
+                                type="button"
+                                onClick={() => updateCargaHoraria(selectedTurma.id, d.id, valor - 1)}
+                                className="flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-white/5"
+                              >
+                                <Minus className="h-3 w-3" />
+                              </button>
+                              <span className="font-display text-sm font-semibold text-slate-800 dark:text-white">{valor}</span>
+                              <button
+                                type="button"
+                                onClick={() => updateCargaHoraria(selectedTurma.id, d.id, valor + 1)}
+                                className="flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-white/5"
+                              >
+                                <Plus className="h-3 w-3" />
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex h-64 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-200 bg-white/50 text-sm text-slate-400 dark:border-slate-700 dark:bg-white/2">
+                    <CalendarClock className="h-8 w-8 text-slate-300 dark:text-slate-600" strokeWidth={1.5} />
+                    Crie uma turma para começar.
+                  </div>
+                )}
+              </>
+            )}
+
+            {tab === "grade-escolar" && (
               <>
                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-slate-900 print:hidden">
                   <div className="flex flex-wrap gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setFiltroTurmaId("todos")}
+                      className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                        filtroTurmaId === "todos"
+                          ? "bg-brand-600 text-white shadow-sm shadow-brand-600/30"
+                          : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10"
+                      }`}
+                    >
+                      Todos
+                    </button>
                     {turmas.map((t) => (
                       <button
                         key={t.id}
                         type="button"
-                        onClick={() => setSelectedId(t.id)}
+                        onClick={() => setFiltroTurmaId(t.id)}
                         className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                          selectedId === t.id
+                          filtroTurmaId === t.id
                             ? "bg-brand-600 text-white shadow-sm shadow-brand-600/30"
                             : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10"
                         }`}
@@ -350,15 +463,31 @@ export default function DashboardPage() {
                       </button>
                     )}
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleGerar}
-                    disabled={turmas.length === 0 || (user.plan === "teste" && freeGenUsesLeft <= 0)}
-                    className="group flex shrink-0 items-center justify-center gap-2 rounded-xl bg-linear-to-r from-brand-600 to-accent-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-600/30 transition-all hover:scale-[1.01] hover:shadow-xl hover:shadow-brand-600/40 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
-                  >
-                    <Sparkles className="h-4 w-4 transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110" />{" "}
-                    Gerar horários
-                  </button>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {schedule && (
+                      <button
+                        type="button"
+                        onClick={handleSalvar}
+                        className={`flex items-center gap-1.5 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors ${
+                          salvo
+                            ? "border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300"
+                            : "border-slate-200 text-slate-600 hover:border-brand-300 hover:text-brand-600 dark:border-white/10 dark:text-slate-300"
+                        }`}
+                      >
+                        {salvo ? <Check className="h-4 w-4" /> : <Save className="h-4 w-4" />}
+                        {salvo ? "Salvo!" : "Salvar horário"}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleGerar}
+                      disabled={turmas.length === 0 || (user.plan === "teste" && freeGenUsesLeft <= 0)}
+                      className="group flex items-center justify-center gap-2 rounded-xl bg-linear-to-r from-brand-600 to-accent-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-600/30 transition-all hover:scale-[1.01] hover:shadow-xl hover:shadow-brand-600/40 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:scale-100"
+                    >
+                      <Sparkles className="h-4 w-4 transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110" />{" "}
+                      Gerar horários
+                    </button>
+                  </div>
                 </div>
 
                 {schedule && schedule.conflitos.length > 0 && (
@@ -374,47 +503,8 @@ export default function DashboardPage() {
                   </div>
                 )}
 
-                {selectedTurma ? (
+                {turmas.length > 0 ? (
                   <>
-                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900 print:hidden">
-                      <div className="mb-3 flex items-center justify-between">
-                        <h2 className="font-display text-base font-semibold text-slate-800 dark:text-white">
-                          Carga horária semanal · {selectedTurma.nome}
-                        </h2>
-                      </div>
-                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                        {disciplinas.map((d) => {
-                          const valor = selectedTurma.cargaHoraria[d.id] ?? 0
-                          return (
-                            <div
-                              key={d.id}
-                              className="rounded-xl border border-slate-100 p-3 transition-all hover:shadow-md dark:border-white/10 dark:hover:bg-white/5"
-                              style={{ borderLeft: `3px solid ${d.cor}` }}
-                            >
-                              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{d.nome}</p>
-                              <div className="mt-1.5 flex items-center justify-between">
-                                <button
-                                  type="button"
-                                  onClick={() => updateCargaHoraria(selectedTurma.id, d.id, valor - 1)}
-                                  className="flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-white/5"
-                                >
-                                  <Minus className="h-3 w-3" />
-                                </button>
-                                <span className="font-display text-sm font-semibold text-slate-800 dark:text-white">{valor}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => updateCargaHoraria(selectedTurma.id, d.id, valor + 1)}
-                                  className="flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-white/5"
-                                >
-                                  <Plus className="h-3 w-3" />
-                                </button>
-                              </div>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-
                     {!schedule && (
                       <p className="text-sm text-slate-400 print:hidden">
                         Clique em "Gerar horários" para preencher a grade de todas as turmas automaticamente.
@@ -422,7 +512,7 @@ export default function DashboardPage() {
                     )}
 
                     <div className="space-y-6">
-                      {turmas.map((turma) => (
+                      {turmasFiltradas.map((turma) => (
                         <div
                           key={turma.id}
                           className={

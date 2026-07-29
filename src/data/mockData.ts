@@ -43,15 +43,6 @@ export interface Professor {
   disciplinaIds: string[]
 }
 
-export const PROFESSORES: Professor[] = [
-  { id: "p1", nome: "Ana Souza", disciplinaIds: ["mat"] },
-  { id: "p2", nome: "Bruno Lima", disciplinaIds: ["port", "arte"] },
-  { id: "p3", nome: "Carla Dias", disciplinaIds: ["cien"] },
-  { id: "p4", nome: "Diego Alves", disciplinaIds: ["hist", "geo"] },
-  { id: "p5", nome: "Elisa Nunes", disciplinaIds: ["ing"] },
-  { id: "p6", nome: "Fábio Rocha", disciplinaIds: ["edf"] },
-]
-
 export type Periodo = "matutino" | "vespertino" | "noturno" | "integral"
 
 export const PERIODOS: Periodo[] = ["matutino", "vespertino", "noturno", "integral"]
@@ -70,30 +61,6 @@ export interface Turma {
   diasFuncionamento: DiaSemana[]
 }
 
-export const TURMAS_INICIAIS: Turma[] = [
-  {
-    id: "t1",
-    nome: "6º Ano A",
-    turno: "matutino",
-    cargaHoraria: { mat: 5, port: 5, cien: 3, hist: 2, geo: 2, ing: 2, edf: 2, arte: 1 },
-    diasFuncionamento: ["Seg", "Ter", "Qua", "Qui", "Sex"],
-  },
-  {
-    id: "t2",
-    nome: "6º Ano B",
-    turno: "matutino",
-    cargaHoraria: { mat: 5, port: 5, cien: 3, hist: 2, geo: 2, ing: 2, edf: 2, arte: 1 },
-    diasFuncionamento: ["Seg", "Ter", "Qua", "Qui", "Sex"],
-  },
-  {
-    id: "t3",
-    nome: "7º Ano A",
-    turno: "vespertino",
-    cargaHoraria: { mat: 4, port: 4, cien: 3, hist: 3, geo: 2, ing: 2, edf: 2, arte: 1 },
-    diasFuncionamento: ["Seg", "Ter", "Qua", "Qui", "Sex"],
-  },
-]
-
 /** Usado pelo gerador/grade — mantido em 5 dias por enquanto. */
 export const DIAS_SEMANA = ["Seg", "Ter", "Qua", "Qui", "Sex"] as const
 /** Usado só no wizard de configuração (inclui Sábado). */
@@ -102,7 +69,8 @@ export type DiaSemana = (typeof DIAS_SEMANA_COMPLETA)[number]
 
 export interface BlocoHorario {
   id: string
-  horario: string
+  inicio: string
+  fim: string
   tipo: "aula" | "intervalo"
 }
 
@@ -112,10 +80,10 @@ export interface BlocoHorario {
  * existia entre 08:40 e 09:50.
  */
 export const BLOCOS_HORARIOS_PADRAO: BlocoHorario[] = [
-  { id: "h1", horario: "07:00", tipo: "aula" },
-  { id: "h2", horario: "07:50", tipo: "aula" },
-  { id: "h3", horario: "08:40", tipo: "aula" },
-  { id: "h4", horario: "09:30", tipo: "intervalo" },
-  { id: "h5", horario: "09:50", tipo: "aula" },
-  { id: "h6", horario: "10:40", tipo: "aula" },
+  { id: "h1", inicio: "07:00", fim: "07:50", tipo: "aula" },
+  { id: "h2", inicio: "07:50", fim: "08:40", tipo: "aula" },
+  { id: "h3", inicio: "08:40", fim: "09:30", tipo: "aula" },
+  { id: "h4", inicio: "09:30", fim: "09:50", tipo: "intervalo" },
+  { id: "h5", inicio: "09:50", fim: "10:40", tipo: "aula" },
+  { id: "h6", inicio: "10:40", fim: "11:30", tipo: "aula" },
 ]
