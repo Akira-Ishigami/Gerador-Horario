@@ -144,7 +144,7 @@ h1, h2, h3, h4, .font-display {
 
 @media print {
   @page {
-    size: landscape;
+    size: portrait;
     margin: 12mm;
   }
   body * {
@@ -166,10 +166,19 @@ h1, h2, h3, h4, .font-display {
   }
   .print-target {
     width: 100%;
+    /* evita cortar a grade de uma turma no meio entre duas páginas — se não
+       couber inteira no que resta da página, pula pra próxima; senão várias
+       turmas dividem a mesma página, empacotando no mínimo de folhas. */
+    break-inside: avoid;
   }
-  /* imprimindo várias turmas de uma vez ("Exportar todos"): uma por página */
-  .print-target + .print-target {
-    break-before: page;
+  /* retrato é mais estreito que paisagem pras 6 colunas (Horário + 5 dias) —
+     aperta fonte/preenchimento só na impressão pra não cortar coluna. */
+  .print-target table {
+    font-size: 9px;
+  }
+  .print-target th,
+  .print-target td {
+    padding: 3px !important;
   }
 
   /*
