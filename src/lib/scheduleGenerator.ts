@@ -27,10 +27,17 @@ function shuffle<T>(arr: T[]): T[] {
 
 /**
  * Gera a grade horária de todas as turmas evitando que um mesmo professor
- * seja escalado em duas turmas no mesmo dia/bloco. Estratégia gulosa com
+ * seja escalado em duas turmas no mesmo dia/horário. Estratégia gulosa com
  * preferência por espalhar as aulas de uma disciplina ao longo da semana;
  * quando não há slot válido, registra o conflito em vez de travar a geração.
  * Blocos do tipo "intervalo" nunca recebem aula.
+ *
+ * Cada turma só usa os blocos do próprio turno (`blocos.turno`) — turnos
+ * diferentes podem ter horários totalmente distintos (ex: matutino 07h-12h,
+ * noturno 19h-22h30). A ocupação do professor é rastreada pelo horário de
+ * início real (não pelo índice do bloco), pra pegar conflito mesmo entre
+ * turnos que se sobrepõem no relógio (ex: um professor em turma integral e
+ * outra matutina ao mesmo tempo).
  */
 export function gerarHorarios(
   turmas: Turma[],
@@ -40,18 +47,17 @@ export function gerarHorarios(
 ): GeneratedSchedule {
   const grades: Record<string, Grade> = {}
   const conflitos: string[] = []
-  // ocupacao[professorId] = Set("diaIndex-blocoIndex")
+  // ocupacao[professorId] = Set("diaIndex-horaInicio")
   const ocupacaoProfessor = new Map<string, Set<string>>()
 
   const nomeDisciplina = (disciplinaId: string) =>
     disciplinas.find((d) => d.id === disciplinaId)?.nome ?? disciplinaId
 
-  const blocosAula = blocos
-    .map((b, index) => ({ ...b, index }))
-    .filter((b) => b.tipo === "aula")
-
+  const blocosPorTurma = new Map<string, BlocoHorario[]>()
   for (const turma of turmas) {
-    grades[turma.id] = emptyGrade(blocos.length)
+    const blocosTurno = blocos.filter((b) => b.turno === turma.turno)
+    blocosPorTurma.set(turma.id, blocosTurno)
+    grades[turma.id] = emptyGrade(blocosTurno.length)
   }
 
   // turmaIds vazio = professor aceita qualquer turma que precise da disciplina
@@ -62,6 +68,10 @@ export function gerarHorarios(
 
   for (const turma of turmas) {
     const grade = grades[turma.id]
+    const blocosAula = (blocosPorTurma.get(turma.id) ?? [])
+      .map((b, index) => ({ ...b, index }))
+      .filter((b) => b.tipo === "aula")
+
     const necessidades = Object.entries(turma.cargaHoraria)
       .filter(([, qtd]) => qtd > 0)
       .sort((a, b) => b[1] - a[1])
@@ -71,6 +81,13 @@ export function gerarHorarios(
       if (candidatosProfessor.length === 0) {
         conflitos.push(
           `Nenhum professor cadastrado para a disciplina "${nomeDisciplina(disciplinaId)}" (${turma.nome}).`,
+        )
+        continue
+      }
+
+      if (blocosAula.length === 0) {
+        conflitos.push(
+          `${turma.nome}: nenhum horário de aula configurado para o turno "${turma.turno}" — configure em Configurações.`,
         )
         continue
       }
@@ -89,7 +106,7 @@ export function gerarHorarios(
           const ordemBlocos = shuffle(blocosAula)
           for (const bloco of ordemBlocos) {
             if (grade[diaIdx][bloco.index] !== null) continue
-            const key = `${diaIdx}-${bloco.index}`
+            const key = `${diaIdx}-${bloco.inicio}`
             const professorLivre = shuffle(candidatosProfessor).find(
               (p) => !ocupacaoProfessor.get(p.id)?.has(key),
             )

@@ -74,18 +74,21 @@ export interface BlocoHorario {
   inicio: string
   fim: string
   tipo: "aula" | "intervalo"
+  /** cada turno tem seus próprios horários (matutino termina cedo, noturno começa à noite etc.) */
+  turno: Periodo
 }
 
 /**
  * Configurável por conta (ver DataContext). Este é só o valor inicial pra
  * conta nova — já vem com um intervalo explícito no lugar do "buraco" que
- * existia entre 08:40 e 09:50.
+ * existia entre 08:40 e 09:50. Só semeia o turno matutino; os demais turnos
+ * partem vazios até o usuário configurar em Configurações.
  */
 export const BLOCOS_HORARIOS_PADRAO: BlocoHorario[] = [
-  { id: "h1", inicio: "07:00", fim: "07:50", tipo: "aula" },
-  { id: "h2", inicio: "07:50", fim: "08:40", tipo: "aula" },
-  { id: "h3", inicio: "08:40", fim: "09:30", tipo: "aula" },
-  { id: "h4", inicio: "09:30", fim: "09:50", tipo: "intervalo" },
-  { id: "h5", inicio: "09:50", fim: "10:40", tipo: "aula" },
-  { id: "h6", inicio: "10:40", fim: "11:30", tipo: "aula" },
+  { id: "h1", inicio: "07:00", fim: "07:50", tipo: "aula", turno: "matutino" },
+  { id: "h2", inicio: "07:50", fim: "08:40", tipo: "aula", turno: "matutino" },
+  { id: "h3", inicio: "08:40", fim: "09:30", tipo: "aula", turno: "matutino" },
+  { id: "h4", inicio: "09:30", fim: "09:50", tipo: "intervalo", turno: "matutino" },
+  { id: "h5", inicio: "09:50", fim: "10:40", tipo: "aula", turno: "matutino" },
+  { id: "h6", inicio: "10:40", fim: "11:30", tipo: "aula", turno: "matutino" },
 ]

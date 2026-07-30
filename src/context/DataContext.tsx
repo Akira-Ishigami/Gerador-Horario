@@ -61,10 +61,10 @@ function disciplinaToRow(d: Disciplina, userId: string) {
 }
 
 function blocoFromRow(row: any): BlocoHorario {
-  return { id: row.id, inicio: row.inicio, fim: row.fim, tipo: row.tipo }
+  return { id: row.id, inicio: row.inicio, fim: row.fim, tipo: row.tipo, turno: row.turno ?? "matutino" }
 }
 function blocoToRow(b: BlocoHorario, userId: string) {
-  return { id: b.id, user_id: userId, inicio: b.inicio, fim: b.fim, tipo: b.tipo }
+  return { id: b.id, user_id: userId, inicio: b.inicio, fim: b.fim, tipo: b.tipo, turno: b.turno }
 }
 
 /**

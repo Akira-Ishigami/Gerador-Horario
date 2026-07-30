@@ -1,17 +1,30 @@
 import { useState } from "react"
 import { Coffee, Plus, Trash2 } from "lucide-react"
 import { useData } from "@/context/DataContext"
+import { PERIODOS, type Periodo } from "@/data/mockData"
+
+const TURNO_LABEL: Record<Periodo, string> = {
+  matutino: "Matutino",
+  vespertino: "Vespertino",
+  noturno: "Noturno",
+  integral: "Integral",
+}
 
 export function BlocosManager() {
   const { blocos, setBlocos } = useData()
+  const [turnoSelecionado, setTurnoSelecionado] = useState<Periodo>("matutino")
   const [novoInicio, setNovoInicio] = useState("")
   const [novoFim, setNovoFim] = useState("")
 
-  const ordenados = [...blocos].sort((a, b) => a.inicio.localeCompare(b.inicio))
+  const doTurno = blocos.filter((b) => b.turno === turnoSelecionado)
+  const ordenados = [...doTurno].sort((a, b) => a.inicio.localeCompare(b.inicio))
 
   const handleAdd = () => {
     if (!novoInicio || !novoFim) return
-    setBlocos([...blocos, { id: `h-${Date.now()}`, inicio: novoInicio, fim: novoFim, tipo: "aula" }])
+    setBlocos([
+      ...blocos,
+      { id: `h-${Date.now()}`, inicio: novoInicio, fim: novoFim, tipo: "aula", turno: turnoSelecionado },
+    ])
     setNovoInicio("")
     setNovoFim("")
   }
@@ -28,8 +41,30 @@ export function BlocosManager() {
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900">
       <h2 className="font-display text-base font-semibold text-slate-800 dark:text-white">Horários das aulas</h2>
       <p className="mb-4 text-xs text-slate-400">
-        Defina o início e o fim de cada aula e marque o intervalo — o gerador nunca encaixa aula no intervalo.
+        Defina o início e o fim de cada aula e marque o intervalo — o gerador nunca encaixa aula no intervalo. Cada
+        turno tem seus próprios horários.
       </p>
+
+      <div className="mb-4 flex flex-wrap gap-1.5">
+        {PERIODOS.map((turno) => {
+          const qtd = blocos.filter((b) => b.turno === turno).length
+          return (
+            <button
+              key={turno}
+              type="button"
+              onClick={() => setTurnoSelecionado(turno)}
+              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                turnoSelecionado === turno
+                  ? "bg-brand-600 text-white shadow-sm shadow-brand-600/30"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10"
+              }`}
+            >
+              {TURNO_LABEL[turno]}
+              {qtd > 0 && <span className="ml-1.5 opacity-70">({qtd})</span>}
+            </button>
+          )
+        })}
+      </div>
 
       <div className="flex flex-wrap items-center gap-2">
         <div className="flex items-center gap-1.5">
@@ -111,7 +146,8 @@ export function BlocosManager() {
         ))}
         {ordenados.length === 0 && (
           <p className="rounded-xl border border-dashed border-slate-200 px-4 py-6 text-center text-sm text-slate-400 dark:border-slate-700">
-            Nenhum horário ainda — adicione o primeiro acima.
+            Nenhum horário ainda para o turno {TURNO_LABEL[turnoSelecionado].toLowerCase()} — adicione o primeiro
+            acima.
           </p>
         )}
       </div>

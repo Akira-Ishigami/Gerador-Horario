@@ -606,7 +606,7 @@ export default function DashboardPage() {
                           </div>
                           <ScheduleGrid
                             grade={schedule?.grades[turma.id] ?? null}
-                            blocos={blocos}
+                            blocos={blocos.filter((b) => b.turno === turma.turno)}
                             onMove={(fromDia, fromBloco, toDia, toBloco) =>
                               handleMoveAssignment(turma.id, fromDia, fromBloco, toDia, toBloco)
                             }
