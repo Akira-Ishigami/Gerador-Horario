@@ -431,51 +431,95 @@ export default function DashboardPage() {
                 </div>
 
                 {turmasCargaHoraria.length > 0 ? (
-                  <div className="space-y-6">
-                    {turmasCargaHoraria.map((turma) => (
-                      <div
-                        key={turma.id}
-                        className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900"
-                      >
-                        <div className="mb-3 flex items-center justify-between">
-                          <h2 className="font-display text-base font-semibold text-slate-800 dark:text-white">
-                            Carga horária semanal · {turma.nome}
-                          </h2>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                          {disciplinas.map((d) => {
-                            const valor = turma.cargaHoraria[d.id] ?? 0
-                            return (
-                              <div
-                                key={d.id}
-                                className="rounded-xl border border-slate-100 p-3 transition-all hover:shadow-md dark:border-white/10 dark:hover:bg-white/5"
-                                style={{ borderLeft: `3px solid ${d.cor}` }}
-                              >
-                                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{d.nome}</p>
-                                <div className="mt-1.5 flex items-center justify-between">
-                                  <button
-                                    type="button"
-                                    onClick={() => updateCargaHoraria(turma.id, d.id, valor - 1)}
-                                    className="flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-white/5"
-                                  >
-                                    <Minus className="h-3 w-3" />
-                                  </button>
-                                  <span className="font-display text-sm font-semibold text-slate-800 dark:text-white">{valor}</span>
-                                  <button
-                                    type="button"
-                                    onClick={() => updateCargaHoraria(turma.id, d.id, valor + 1)}
-                                    className="flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-white/5"
-                                  >
-                                    <Plus className="h-3 w-3" />
-                                  </button>
-                                </div>
-                              </div>
-                            )
-                          })}
-                        </div>
+                  selectedId === "todos" ? (
+                    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900">
+                      <div className="mb-3 flex items-center justify-between">
+                        <h2 className="font-display text-base font-semibold text-slate-800 dark:text-white">
+                          Carga horária semanal · Todas as turmas
+                        </h2>
                       </div>
-                    ))}
-                  </div>
+                      <p className="mb-3 text-xs text-slate-400">
+                        Ajustar aqui aplica em todas as turmas de uma vez. Selecione uma turma acima pra ajustar só ela.
+                      </p>
+                      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                        {disciplinas.map((d) => {
+                          const valor = turmas[0]?.cargaHoraria[d.id] ?? 0
+                          return (
+                            <div
+                              key={d.id}
+                              className="rounded-xl border border-slate-100 p-3 transition-all hover:shadow-md dark:border-white/10 dark:hover:bg-white/5"
+                              style={{ borderLeft: `3px solid ${d.cor}` }}
+                            >
+                              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{d.nome}</p>
+                              <div className="mt-1.5 flex items-center justify-between">
+                                <button
+                                  type="button"
+                                  onClick={() => turmas.forEach((t) => updateCargaHoraria(t.id, d.id, valor - 1))}
+                                  className="flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-white/5"
+                                >
+                                  <Minus className="h-3 w-3" />
+                                </button>
+                                <span className="font-display text-sm font-semibold text-slate-800 dark:text-white">{valor}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => turmas.forEach((t) => updateCargaHoraria(t.id, d.id, valor + 1))}
+                                  className="flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-white/5"
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </button>
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {turmasCargaHoraria.map((turma) => (
+                        <div
+                          key={turma.id}
+                          className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900"
+                        >
+                          <div className="mb-3 flex items-center justify-between">
+                            <h2 className="font-display text-base font-semibold text-slate-800 dark:text-white">
+                              Carga horária semanal · {turma.nome}
+                            </h2>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                            {disciplinas.map((d) => {
+                              const valor = turma.cargaHoraria[d.id] ?? 0
+                              return (
+                                <div
+                                  key={d.id}
+                                  className="rounded-xl border border-slate-100 p-3 transition-all hover:shadow-md dark:border-white/10 dark:hover:bg-white/5"
+                                  style={{ borderLeft: `3px solid ${d.cor}` }}
+                                >
+                                  <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{d.nome}</p>
+                                  <div className="mt-1.5 flex items-center justify-between">
+                                    <button
+                                      type="button"
+                                      onClick={() => updateCargaHoraria(turma.id, d.id, valor - 1)}
+                                      className="flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-white/5"
+                                    >
+                                      <Minus className="h-3 w-3" />
+                                    </button>
+                                    <span className="font-display text-sm font-semibold text-slate-800 dark:text-white">{valor}</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => updateCargaHoraria(turma.id, d.id, valor + 1)}
+                                      className="flex h-6 w-6 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-white/5"
+                                    >
+                                      <Plus className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )
                 ) : (
                   <div className="flex h-64 flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-200 bg-white/50 text-sm text-slate-400 dark:border-slate-700 dark:bg-white/2">
                     <CalendarClock className="h-8 w-8 text-slate-300 dark:text-slate-600" strokeWidth={1.5} />
