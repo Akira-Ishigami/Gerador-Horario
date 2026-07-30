@@ -682,7 +682,7 @@ export default function DashboardPage() {
                         <div
                           key={turma.id}
                           className={
-                            user.plan === "teste"
+                            !MVP_SEM_LIMITES && user.plan === "teste"
                               ? `watermark-teste${ehAlvoImpressao ? " print-target" : ""}`
                               : ehAlvoImpressao
                                 ? "print-target"
