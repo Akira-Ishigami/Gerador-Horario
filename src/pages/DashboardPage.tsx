@@ -315,12 +315,12 @@ export default function DashboardPage() {
 
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <main className="print-main mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-6 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-800 print:hidden dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300 lg:hidden">
           <Monitor className="h-4 w-4 shrink-0" />
           Pra melhor visualização, acesse pelo computador — o celular ainda tá em ajustes.
         </div>
-        <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
+        <div className="print-grid grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
           {/* Sidebar: navegação */}
           <aside className="space-y-4 self-start print:hidden lg:sticky lg:top-20">
             <PlanBadge planId={user.plan} turmasUsadas={turmas.length} />
@@ -630,6 +630,18 @@ export default function DashboardPage() {
                         {salvo ? "Salvo!" : "Salvar horário"}
                       </button>
                     )}
+                    {schedule && turmas.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFiltroTurmaId("todos")
+                          setPrintTargetId("todos")
+                        }}
+                        className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-600 hover:border-brand-300 hover:text-brand-600 dark:border-white/10 dark:text-slate-300"
+                      >
+                        <Printer className="h-4 w-4" /> Exportar todos
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={handleGerar}
@@ -664,13 +676,15 @@ export default function DashboardPage() {
                     )}
 
                     <div className="space-y-6">
-                      {turmasFiltradas.map((turma) => (
+                      {turmasFiltradas.map((turma) => {
+                        const ehAlvoImpressao = printTargetId === turma.id || printTargetId === "todos"
+                        return (
                         <div
                           key={turma.id}
                           className={
                             user.plan === "teste"
-                              ? `watermark-teste${printTargetId === turma.id ? " print-target" : ""}`
-                              : printTargetId === turma.id
+                              ? `watermark-teste${ehAlvoImpressao ? " print-target" : ""}`
+                              : ehAlvoImpressao
                                 ? "print-target"
                                 : undefined
                           }
@@ -695,7 +709,8 @@ export default function DashboardPage() {
                             }
                           />
                         </div>
-                      ))}
+                        )
+                      })}
                     </div>
                   </>
                 ) : (

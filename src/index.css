@@ -143,6 +143,10 @@ h1, h2, h3, h4, .font-display {
 }
 
 @media print {
+  @page {
+    size: landscape;
+    margin: 12mm;
+  }
   body * {
     visibility: hidden;
   }
@@ -150,10 +154,22 @@ h1, h2, h3, h4, .font-display {
   .print-target * {
     visibility: visible;
   }
+  /* main/grid do painel (sidebar + conteúdo) não pode limitar a largura do
+     que é impresso — sem isso o print-target fica preso na coluna estreita
+     de conteúdo em vez de usar a folha inteira. */
+  .print-main {
+    max-width: none;
+    padding: 0;
+  }
+  .print-grid {
+    display: block;
+  }
   .print-target {
-    position: absolute;
-    inset: 0;
     width: 100%;
+  }
+  /* imprimindo várias turmas de uma vez ("Exportar todos"): uma por página */
+  .print-target + .print-target {
+    break-before: page;
   }
 
   /*
