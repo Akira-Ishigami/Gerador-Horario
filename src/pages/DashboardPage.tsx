@@ -433,24 +433,47 @@ export default function DashboardPage() {
                 {turmasCargaHoraria.length > 0 ? (
                   selectedId === "todos" ? (
                     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900">
-                      <div className="mb-3 flex items-center justify-between">
+                      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                         <h2 className="font-display text-base font-semibold text-slate-800 dark:text-white">
                           Carga horária semanal · Todas as turmas
                         </h2>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            disciplinas.forEach((d) => {
+                              const valor = turmas[0]?.cargaHoraria[d.id] ?? 0
+                              turmas.forEach((t) => updateCargaHoraria(t.id, d.id, valor))
+                            })
+                          }
+                          className="rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-brand-700"
+                        >
+                          Aplicar a todas as turmas
+                        </button>
                       </div>
                       <p className="mb-3 text-xs text-slate-400">
-                        Ajustar aqui aplica em todas as turmas de uma vez. Selecione uma turma acima pra ajustar só ela.
+                        Os valores abaixo são os da turma "{turmas[0]?.nome}". Ajustar no +/- já aplica em todas, mas
+                        se uma matéria não mudou de número aqui e alguma turma ainda estava zerada, clique em
+                        "Aplicar a todas as turmas" pra forçar a sincronização de tudo de uma vez.
                       </p>
                       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                         {disciplinas.map((d) => {
-                          const valor = turmas[0]?.cargaHoraria[d.id] ?? 0
+                          const valores = turmas.map((t) => t.cargaHoraria[d.id] ?? 0)
+                          const valor = valores[0] ?? 0
+                          const dessincronizado = valores.some((v) => v !== valor)
                           return (
                             <div
                               key={d.id}
                               className="rounded-xl border border-slate-100 p-3 transition-all hover:shadow-md dark:border-white/10 dark:hover:bg-white/5"
                               style={{ borderLeft: `3px solid ${d.cor}` }}
                             >
-                              <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{d.nome}</p>
+                              <div className="flex items-center justify-between gap-1">
+                                <p className="text-xs font-medium text-slate-500 dark:text-slate-400">{d.nome}</p>
+                                {dessincronizado && (
+                                  <span className="text-[10px] font-medium text-amber-500" title="Nem toda turma tem esse número">
+                                    dessincronizado
+                                  </span>
+                                )}
+                              </div>
                               <div className="mt-1.5 flex items-center justify-between">
                                 <button
                                   type="button"
