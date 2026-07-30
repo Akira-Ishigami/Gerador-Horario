@@ -54,6 +54,7 @@ const DICAS_GERADOR = [
   "Se restringir um professor a turmas específicas (aba Professores), confira se as outras turmas também têm professor disponível pra mesma matéria.",
   "O gerador sorteia a distribuição — clicou e não gostou do resultado? Clique em \"Gerar horários\" de novo.",
   "Depois de gerar, arraste qualquer aula pra outro horário livre pra ajustar manualmente.",
+  "Com o filtro \"Todos\" selecionado, arrastar uma aula move ela em todas as turmas do mesmo turno de uma vez.",
   "Configure o intervalo em \"Configurações\" antes de gerar — o gerador nunca encaixa aula nesse horário.",
   "Clique em \"Salvar horário\" depois de gerar/ajustar — sem isso a grade some ao trocar de tela ou dispositivo.",
 ]
@@ -216,16 +217,31 @@ export default function DashboardPage() {
 
   const handleMoveAssignment = (turmaId: string, fromDia: number, fromBloco: number, toDia: number, toBloco: number) => {
     setSalvo(false)
+    // No filtro "Todos", o arrasto reflete em toda turma do mesmo turno da
+    // turma arrastada (mesmo turno = mesma lista de blocos, então o índice
+    // dia/bloco aponta pro mesmo horário real em todas). Turmas de outro
+    // turno não são afetadas, e turma sem aula nenhuma no horário de origem
+    // é pulada (nada pra mover nela).
+    const turmaOrigem = turmas.find((t) => t.id === turmaId)
+    const turmaIds =
+      filtroTurmaId === "todos" && turmaOrigem
+        ? turmas.filter((t) => t.turno === turmaOrigem.turno).map((t) => t.id)
+        : [turmaId]
+
     setSchedule((prev) => {
       if (!prev) return prev
-      const grade = prev.grades[turmaId]
-      if (!grade) return prev
-      const novaGrade = grade.map((linha) => [...linha])
-      const origem = novaGrade[fromDia][fromBloco]
-      const destino = novaGrade[toDia][toBloco]
-      novaGrade[toDia][toBloco] = origem
-      novaGrade[fromDia][fromBloco] = destino
-      return { ...prev, grades: { ...prev.grades, [turmaId]: novaGrade } }
+      const novosGrades = { ...prev.grades }
+      for (const id of turmaIds) {
+        const grade = prev.grades[id]
+        const origem = grade?.[fromDia]?.[fromBloco] ?? null
+        if (!grade || !origem) continue
+        const novaGrade = grade.map((linha) => [...linha])
+        const destino = novaGrade[toDia][toBloco]
+        novaGrade[toDia][toBloco] = origem
+        novaGrade[fromDia][fromBloco] = destino
+        novosGrades[id] = novaGrade
+      }
+      return { ...prev, grades: novosGrades }
     })
   }
 
