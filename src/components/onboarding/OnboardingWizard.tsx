@@ -30,8 +30,27 @@ import { APP_NAME } from "@/config/branding"
 interface WizardTurma {
   nome: string
   periodo: Periodo
+  sala: string
   cargaHoraria: Record<string, number>
   dias: DiaSemana[]
+}
+
+const LETRAS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+/** índices de turmas cujo nome (aparado, sem diferenciar maiúsculas) se repete em outra turma da lista */
+function indicesNomeDuplicado(turmas: WizardTurma[]): Set<number> {
+  const contagem = new Map<string, number>()
+  for (const t of turmas) {
+    const chave = t.nome.trim().toLowerCase()
+    if (!chave) continue
+    contagem.set(chave, (contagem.get(chave) ?? 0) + 1)
+  }
+  const duplicados = new Set<number>()
+  turmas.forEach((t, i) => {
+    const chave = t.nome.trim().toLowerCase()
+    if (chave && (contagem.get(chave) ?? 0) > 1) duplicados.add(i)
+  })
+  return duplicados
 }
 
 const PALETA_CORES = [
@@ -58,7 +77,7 @@ const STEPS = [
 ]
 
 function novaTurmaWizard(): WizardTurma {
-  return { nome: "", periodo: "matutino", cargaHoraria: {}, dias: [...DIAS_SEMANA] }
+  return { nome: "", periodo: "matutino", sala: "", cargaHoraria: {}, dias: [...DIAS_SEMANA] }
 }
 
 interface OnboardingWizardProps {
@@ -125,9 +144,26 @@ export function OnboardingWizard({ onFinish }: OnboardingWizardProps) {
   }
 
   const canContinue = () => {
-    if (step === 1) return turmas.every((t) => t.nome.trim().length > 0)
+    if (step === 1) return turmas.every((t) => t.nome.trim().length > 0) && indicesNomeDuplicado(turmas).size === 0
     if (step === 3) return professores.some((p) => p.nome.trim().length > 0)
     return true
+  }
+
+  const step1Aviso = (() => {
+    if (step !== 1) return null
+    if (turmas.some((t) => !t.nome.trim())) return "Preencha o nome de todas as turmas para continuar."
+    if (indicesNomeDuplicado(turmas).size > 0) return "Duas turmas não podem ter o mesmo nome — ajuste os nomes destacados abaixo."
+    return null
+  })()
+
+  const applyTurnoATodas = (periodo: Periodo) => {
+    setTurmas((prev) => prev.map((t) => ({ ...t, periodo })))
+  }
+
+  const preencherNomesSequenciais = (base: string) => {
+    const b = base.trim()
+    if (!b) return
+    setTurmas((prev) => prev.map((t, i) => ({ ...t, nome: `${b} ${LETRAS[i] ?? i + 1}` })))
   }
 
   const goNext = () => {
@@ -143,7 +179,13 @@ export function OnboardingWizard({ onFinish }: OnboardingWizardProps) {
 
   const handleFinish = () => {
     turmas.forEach((t) => {
-      addTurma({ nome: t.nome.trim(), turno: t.periodo, cargaHoraria: t.cargaHoraria, diasFuncionamento: t.dias })
+      addTurma({
+        nome: t.nome.trim(),
+        turno: t.periodo,
+        sala: t.sala.trim() || undefined,
+        cargaHoraria: t.cargaHoraria,
+        diasFuncionamento: t.dias,
+      })
     })
     saveProfessores(professores.filter((p) => p.nome.trim().length > 0))
     saveDisciplinas(disciplinas)
@@ -220,7 +262,17 @@ export function OnboardingWizard({ onFinish }: OnboardingWizardProps) {
                 exit={{ opacity: 0, x: -16 }}
                 transition={{ duration: 0.3 }}
               >
-                {step === 1 && <StepTurmas turmas={turmas} maxCount={maxCount} onCountChange={setCount} onChangeTurma={updateTurma} />}
+                {step === 1 && (
+                  <StepTurmas
+                    turmas={turmas}
+                    maxCount={maxCount}
+                    onCountChange={setCount}
+                    onChangeTurma={updateTurma}
+                    onApplyTurnoATodas={applyTurnoATodas}
+                    onPreencherNomes={preencherNomesSequenciais}
+                    nomesDuplicados={indicesNomeDuplicado(turmas)}
+                  />
+                )}
                 {step === 2 && (
                   <StepMaterias
                     turmas={turmas}
@@ -245,6 +297,10 @@ export function OnboardingWizard({ onFinish }: OnboardingWizardProps) {
             )}
           </AnimatePresence>
         </div>
+
+        {!loading && step1Aviso && (
+          <p className="mt-4 text-center text-xs font-medium text-amber-600 dark:text-amber-400">{step1Aviso}</p>
+        )}
 
         {!loading && (
           <div className="mt-6 flex items-center justify-between">
@@ -287,12 +343,20 @@ function StepTurmas({
   maxCount,
   onCountChange,
   onChangeTurma,
+  onApplyTurnoATodas,
+  onPreencherNomes,
+  nomesDuplicados,
 }: {
   turmas: WizardTurma[]
   maxCount: number
   onCountChange: (n: number) => void
   onChangeTurma: (i: number, t: WizardTurma) => void
+  onApplyTurnoATodas: (periodo: Periodo) => void
+  onPreencherNomes: (base: string) => void
+  nomesDuplicados: Set<number>
 }) {
+  const [nomeBase, setNomeBase] = useState("")
+
   return (
     <div>
       <h2 className="font-display text-2xl font-bold text-slate-900 dark:text-white">Quantas turmas sua escola tem?</h2>
@@ -324,34 +388,96 @@ function StepTurmas({
       </div>
       <p className="mt-2 text-xs text-slate-400">Seu plano permite até {maxCount} turma{maxCount > 1 ? "s" : ""}.</p>
 
-      <div className="mt-6 space-y-3">
-        {turmas.map((t, i) => (
-          <div key={i} className="rounded-xl border border-slate-200 p-4 dark:border-white/10">
-            <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Nome da turma {i + 1}</label>
-            <input
-              value={t.nome}
-              onChange={(e) => onChangeTurma(i, { ...t, nome: e.target.value })}
-              placeholder="Ex: 6º Ano A"
-              className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-            />
-            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+      {turmas.length > 1 && (
+        <div className="mt-6 grid gap-3 rounded-xl border border-dashed border-slate-200 p-4 dark:border-slate-700 sm:grid-cols-2">
+          <div>
+            <label className="text-xs font-medium text-slate-500 dark:text-slate-400">
+              Preencher nomes de uma vez
+            </label>
+            <div className="mt-1.5 flex items-center gap-1.5">
+              <input
+                value={nomeBase}
+                onChange={(e) => setNomeBase(e.target.value)}
+                placeholder="Ex: 6º Ano"
+                className="w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+              />
+              <button
+                type="button"
+                onClick={() => onPreencherNomes(nomeBase)}
+                disabled={!nomeBase.trim()}
+                className="shrink-0 rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-200 disabled:cursor-not-allowed disabled:opacity-40 dark:bg-white/5 dark:text-slate-300 dark:hover:bg-white/10"
+              >
+                Aplicar A, B, C...
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Turno padrão pra todas</label>
+            <div className="mt-1.5 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
               {PERIODOS.map((p) => (
                 <button
                   key={p}
                   type="button"
-                  onClick={() => onChangeTurma(i, { ...t, periodo: p })}
-                  className={`rounded-lg border px-2 py-1.5 text-xs font-medium capitalize transition-colors ${
-                    t.periodo === p
-                      ? "border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300"
-                      : "border-slate-200 text-slate-500 dark:border-slate-700 dark:text-slate-400"
-                  }`}
+                  onClick={() => onApplyTurnoATodas(p)}
+                  className="rounded-lg border border-slate-200 px-2 py-2 text-xs font-medium capitalize text-slate-500 transition-colors hover:border-brand-400 hover:text-brand-600 dark:border-slate-700 dark:text-slate-400"
                 >
                   {p}
                 </button>
               ))}
             </div>
           </div>
-        ))}
+        </div>
+      )}
+
+      <div className="mt-6 space-y-3">
+        {turmas.map((t, i) => {
+          const duplicado = nomesDuplicados.has(i)
+          return (
+            <div key={i} className="rounded-xl border border-slate-200 p-4 dark:border-white/10">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-medium text-slate-500 dark:text-slate-400">Nome da turma {i + 1}</label>
+                {duplicado && <span className="text-[11px] font-medium text-rose-500">nome repetido</span>}
+              </div>
+              <input
+                value={t.nome}
+                onChange={(e) => onChangeTurma(i, { ...t, nome: e.target.value })}
+                placeholder="Ex: 6º Ano A"
+                className={`mt-1 w-full rounded-lg border bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:ring-2 dark:bg-slate-950 dark:text-white ${
+                  duplicado
+                    ? "border-rose-400 focus:border-rose-500 focus:ring-rose-500/20"
+                    : "border-slate-300 focus:border-brand-500 focus:ring-brand-500/20 dark:border-slate-700"
+                }`}
+              />
+
+              <label className="mt-3 block text-xs font-medium text-slate-500 dark:text-slate-400">
+                Sala/ambiente (opcional)
+              </label>
+              <input
+                value={t.sala}
+                onChange={(e) => onChangeTurma(i, { ...t, sala: e.target.value })}
+                placeholder="Ex: Sala 12"
+                className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+              />
+
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {PERIODOS.map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => onChangeTurma(i, { ...t, periodo: p })}
+                    className={`rounded-lg border px-2 py-1.5 text-xs font-medium capitalize transition-colors ${
+                      t.periodo === p
+                        ? "border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300"
+                        : "border-slate-200 text-slate-500 dark:border-slate-700 dark:text-slate-400"
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )
@@ -646,6 +772,7 @@ function StepRevisao({ turmas, professores }: { turmas: WizardTurma[]; professor
               <p className="font-display font-semibold text-slate-900 dark:text-white">{t.nome || `Turma ${i + 1}`}</p>
               <p className="mt-1 text-xs capitalize text-slate-400">
                 {t.periodo} · {t.dias.length} dia{t.dias.length !== 1 ? "s" : ""}/semana
+                {t.sala.trim() && <> · {t.sala.trim()}</>}
               </p>
               <p className="mt-1 text-xs text-slate-400">{totalAulas} aula{totalAulas !== 1 ? "s" : ""}/semana no total</p>
             </div>

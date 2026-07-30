@@ -6,24 +6,26 @@ import { PERIODOS, type Periodo } from "@/data/mockData"
 interface NovaTurmaModalProps {
   open: boolean
   onClose: () => void
-  onCreate: (nome: string, turno: Periodo) => { ok: true } | { ok: false; error: string }
+  onCreate: (nome: string, turno: Periodo, sala: string | undefined) => { ok: true } | { ok: false; error: string }
 }
 
 export function NovaTurmaModal({ open, onClose, onCreate }: NovaTurmaModalProps) {
   const [nome, setNome] = useState("")
   const [turno, setTurno] = useState<Periodo>("matutino")
+  const [sala, setSala] = useState("")
   const [error, setError] = useState<string | null>(null)
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault()
     if (!nome.trim()) return
-    const result = onCreate(nome.trim(), turno)
+    const result = onCreate(nome.trim(), turno, sala.trim() || undefined)
     if (!result.ok) {
       setError(result.error)
       return
     }
     setNome("")
     setTurno("matutino")
+    setSala("")
     setError(null)
     onClose()
   }
@@ -68,6 +70,18 @@ export function NovaTurmaModal({ open, onClose, onCreate }: NovaTurmaModalProps)
                   onChange={(e) => setNome(e.target.value)}
                   placeholder="Ex: 8º Ano B"
                   required
+                  className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                />
+              </div>
+              <div>
+                <label htmlFor="sala-turma" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                  Sala/ambiente (opcional)
+                </label>
+                <input
+                  id="sala-turma"
+                  value={sala}
+                  onChange={(e) => setSala(e.target.value)}
+                  placeholder="Ex: Sala 12"
                   className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
                 />
               </div>

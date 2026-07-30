@@ -31,6 +31,7 @@ function turmaFromRow(row: any): Turma {
     id: row.id,
     nome: row.nome,
     turno: row.turno,
+    sala: row.sala ?? undefined,
     cargaHoraria: row.carga_horaria ?? {},
     diasFuncionamento: row.dias_funcionamento ?? [],
   }
@@ -41,6 +42,7 @@ function turmaToRow(t: Turma, userId: string) {
     user_id: userId,
     nome: t.nome,
     turno: t.turno,
+    sala: t.sala ?? null,
     carga_horaria: t.cargaHoraria,
     dias_funcionamento: t.diasFuncionamento,
   }

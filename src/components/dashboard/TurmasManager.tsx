@@ -49,6 +49,13 @@ export function TurmasManager() {
               </button>
             </div>
 
+            <input
+              value={t.sala ?? ""}
+              onChange={(e) => updateTurma(t.id, { sala: e.target.value })}
+              placeholder="Sala/ambiente (opcional)"
+              className="mt-1 w-full rounded-lg border border-transparent bg-transparent px-1 py-1 text-xs text-slate-400 outline-none focus:border-brand-500 focus:bg-white focus:ring-2 focus:ring-brand-500/20 dark:focus:bg-slate-950"
+            />
+
             <div className="mt-3 grid grid-cols-2 gap-1.5 sm:grid-cols-4">
               {PERIODOS.map((p) => (
                 <button
@@ -97,8 +104,8 @@ export function TurmasManager() {
       <NovaTurmaModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
-        onCreate={(nome, turno) =>
-          addTurma({ nome, turno, cargaHoraria: {}, diasFuncionamento: ["Seg", "Ter", "Qua", "Qui", "Sex"] })
+        onCreate={(nome, turno, sala) =>
+          addTurma({ nome, turno, sala, cargaHoraria: {}, diasFuncionamento: ["Seg", "Ter", "Qua", "Qui", "Sex"] })
         }
       />
     </div>

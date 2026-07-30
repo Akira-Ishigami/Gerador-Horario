@@ -53,6 +53,8 @@ export interface Turma {
   id: string
   nome: string
   turno: Periodo
+  /** sala/ambiente onde a turma tem aula — só informativo, não afeta o gerador */
+  sala?: string
   /** quantidade de aulas semanais por disciplina */
   cargaHoraria: Record<string, number>
   /**
