@@ -204,13 +204,21 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }
 
   const updateTurma = (turmaId: string, changes: Partial<Omit<Turma, "id">>) => {
-    setTurmas((prev) => prev.map((t) => (t.id === turmaId ? { ...t, ...changes } : t)))
-    if (!user) return
-    const atual = turmas.find((t) => t.id === turmaId)
-    if (!atual) return
+    // mesmo motivo do updateCargaHoraria: computa dentro do updater (não a
+    // partir de `turmas` do fechamento) pra ficar seguro mesmo se um dia
+    // isso for chamado várias vezes seguidas pra mesma turma num só clique.
+    let atualizado: Turma | null = null
+    setTurmas((prev) =>
+      prev.map((t) => {
+        if (t.id !== turmaId) return t
+        atualizado = { ...t, ...changes }
+        return atualizado
+      }),
+    )
+    if (!user || !atualizado) return
     supabase
       .from("turmas")
-      .update(turmaToRow({ ...atual, ...changes }, user.id))
+      .update(turmaToRow(atualizado, user.id))
       .eq("user_id", user.id)
       .eq("id", turmaId)
       .then(({ error }) => {
@@ -219,11 +227,21 @@ export function DataProvider({ children }: { children: ReactNode }) {
   }
 
   const updateCargaHoraria = (turmaId: string, disciplinaId: string, quantidade: number) => {
-    const atual = turmas.find((t) => t.id === turmaId)
-    if (!atual) return
-    const novaCarga = { ...atual.cargaHoraria, [disciplinaId]: Math.max(0, quantidade) }
-    setTurmas((prev) => prev.map((t) => (t.id === turmaId ? { ...t, cargaHoraria: novaCarga } : t)))
-    if (!user) return
+    // novaCarga é computado dentro do updater (a partir do `prev` mais
+    // recente, não de `turmas` do fechamento) porque isso pode ser chamado
+    // várias vezes seguidas pra mesma turma no mesmo clique (ex: "Aplicar a
+    // todas as turmas", uma chamada por matéria) — usar `turmas` do
+    // fechamento faria cada chamada sobrescrever a carga horária inteira só
+    // com a matéria da vez, perdendo as anteriores do mesmo clique.
+    let novaCarga: Record<string, number> | null = null
+    setTurmas((prev) =>
+      prev.map((t) => {
+        if (t.id !== turmaId) return t
+        novaCarga = { ...t.cargaHoraria, [disciplinaId]: Math.max(0, quantidade) }
+        return { ...t, cargaHoraria: novaCarga }
+      }),
+    )
+    if (!user || !novaCarga) return
     supabase
       .from("turmas")
       .update({ carga_horaria: novaCarga })
