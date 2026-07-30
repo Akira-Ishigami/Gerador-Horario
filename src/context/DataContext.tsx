@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
-import { BLOCOS_HORARIOS_PADRAO, type BlocoHorario, type Disciplina, type Professor, type Turma } from "@/data/mockData"
+import { BLOCOS_HORARIOS_PADRAO, PERIODOS, type BlocoHorario, type Disciplina, type Professor, type Turma } from "@/data/mockData"
 import { useAuth } from "@/context/AuthContext"
 import { getPlan, MVP_SEM_LIMITES } from "@/config/branding"
 import { supabase } from "@/lib/supabaseClient"
@@ -128,13 +128,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setDisciplinasState((disciplinasRes.data ?? []).map(disciplinaFromRow))
 
       const blocosCarregados = (blocosRes.data ?? []).map(blocoFromRow)
-      if (blocosCarregados.length === 0) {
-        // conta nova: ainda não tem horário nenhum configurado — usa o
-        // padrão como ponto de partida e já salva pro banco.
-        setBlocosState(BLOCOS_HORARIOS_PADRAO)
+      const turnosExistentes = new Set(blocosCarregados.map((b) => b.turno))
+      const turnosFaltando = PERIODOS.filter((p) => !turnosExistentes.has(p))
+      if (turnosFaltando.length > 0) {
+        // conta nova (todos os turnos faltando) ou conta que já configurou
+        // só alguns turnos — completa com o padrão só o que ainda falta e
+        // já salva pro banco.
+        const blocosParaSemear = BLOCOS_HORARIOS_PADRAO.filter((b) => turnosFaltando.includes(b.turno))
+        setBlocosState([...blocosCarregados, ...blocosParaSemear])
         supabase
           .from("blocos_horarios")
-          .upsert(BLOCOS_HORARIOS_PADRAO.map((b) => blocoToRow(b, user.id)))
+          .upsert(blocosParaSemear.map((b) => blocoToRow(b, user.id)))
           .then(({ error }) => {
             if (error) console.error("Erro ao semear horários padrão:", error)
           })
