@@ -11,6 +11,7 @@ import {
   Lightbulb,
   LogOut,
   Minus,
+  Monitor,
   Plus,
   Printer,
   Save,
@@ -299,6 +300,10 @@ export default function DashboardPage() {
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mb-6 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-800 print:hidden dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300 lg:hidden">
+          <Monitor className="h-4 w-4 shrink-0" />
+          Pra melhor visualização, acesse pelo computador — o celular ainda tá em ajustes.
+        </div>
         <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
           {/* Sidebar: navegação */}
           <aside className="space-y-4 self-start print:hidden lg:sticky lg:top-20">
