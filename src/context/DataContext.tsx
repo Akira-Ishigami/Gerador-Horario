@@ -168,7 +168,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
     if (!user) return { ok: false, error: "Você precisa estar logado." }
 
-    const nova: Turma = { ...turma, id: `t-${Date.now()}` }
+    // Math.random() além do timestamp: addTurma roda várias vezes seguidas
+    // (num forEach síncrono) quando o wizard de onboarding cria várias turmas
+    // de uma vez — só o timestamp colidia e causava ids duplicados (a 2ª
+    // turma em diante falhava ao inserir, violação de chave primária).
+    const nova: Turma = { ...turma, id: `t-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` }
     setTurmas((prev) => [...prev, nova])
     // .insert(...) só dispara a requisição de verdade quando "then"-ado ou
     // aguardado — o client do Supabase é lazy (thenable), então um `void`
