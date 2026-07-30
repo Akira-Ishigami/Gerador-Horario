@@ -15,6 +15,7 @@ import {
   Medal,
   MessageCircle,
   Minus,
+  Monitor,
   Move,
   Plus,
   Rocket,
@@ -356,6 +357,13 @@ export default function LandingPage() {
   return (
     <div className="min-h-screen bg-stone-50 font-landing-sans text-stone-600">
       <Navbar />
+
+      <div className="border-b border-stone-900/10 bg-amber-50 px-4 py-2.5 font-landing-sans text-xs text-amber-800 sm:px-6 lg:hidden lg:px-8">
+        <div className="mx-auto flex max-w-7xl items-center gap-2">
+          <Monitor className="h-4 w-4 shrink-0" />
+          Pra melhor visualização, acesse pelo computador — o celular ainda tá em ajustes.
+        </div>
+      </div>
 
       <Hero />
 
