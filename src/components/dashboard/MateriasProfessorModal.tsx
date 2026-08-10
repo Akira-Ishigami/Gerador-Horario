@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { AnimatePresence, motion } from "framer-motion"
 import { Check, Search, X } from "lucide-react"
 import type { Disciplina, Professor, Turma } from "@/data/mockData"
@@ -20,6 +20,18 @@ const pillClasse = (ativa: boolean) =>
 
 export function MateriasProfessorModal({ professor, disciplinas, turmas, onClose, onChange }: MateriasProfessorModalProps) {
   const [busca, setBusca] = useState("")
+  const aberto = professor !== null
+
+  // trava o scroll da página atrás enquanto o modal está aberto — sem isso,
+  // rolar a lista até o fim "vaza" o gesto pra página por trás dele
+  useEffect(() => {
+    if (!aberto) return
+    const original = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    return () => {
+      document.body.style.overflow = original
+    }
+  }, [aberto])
 
   const disciplinasFiltradas = disciplinas.filter((d) => d.nome.toLowerCase().includes(busca.trim().toLowerCase()))
   const totalAtivas = professor ? Object.keys(professor.turmasPorDisciplina).length : 0
