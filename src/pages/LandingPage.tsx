@@ -26,7 +26,7 @@ import {
 } from "lucide-react"
 import { Navbar } from "@/components/Navbar"
 import { Footer } from "@/components/Footer"
-import { PAID_PLANS, APP_NAME, MVP_SEM_LIMITES, type PlanId } from "@/config/branding"
+import { PAID_PLANS, APP_NAME, MVP_SEM_LIMITES } from "@/config/branding"
 import { useAuth } from "@/context/AuthContext"
 import { useSEO } from "@/hooks/useSEO"
 
@@ -315,12 +315,11 @@ export default function LandingPage() {
   const navigate = useNavigate()
   const { user } = useAuth()
 
-  // Checkout do Mercado Pago desativado temporariamente — o caminho de
-  // pagamento está sendo reestruturado. Os botões de plano pago levam pro
-  // cadastro/painel como o "Teste grátis", sem cobrar nada por enquanto.
-  const handleEscolherPlano = (planId: PlanId) => {
+  // Sem cobrança nesta fase — os botões de plano pago levam pro cadastro/painel
+  // como o "Teste grátis" (ver MVP_SEM_LIMITES em config/branding.ts).
+  const handleEscolherPlano = () => {
     if (!user) {
-      navigate(`/login?modo=cadastro&plano=${planId}`)
+      navigate("/login?modo=cadastro")
       return
     }
     navigate("/app")
@@ -727,7 +726,7 @@ export default function LandingPage() {
               </ul>
               <button
                 type="button"
-                onClick={() => handleEscolherPlano(plan.id)}
+                onClick={handleEscolherPlano}
                 className={`mt-8 inline-flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold transition-colors ${
                   plan.highlight
                     ? "bg-stone-950 text-white hover:bg-stone-800"
@@ -742,7 +741,7 @@ export default function LandingPage() {
         </div>
 
         <p className="mt-6 text-center font-landing-mono text-xs text-stone-400">
-          Pagamento recorrente será processado via Mercado Pago (integração em breve). Cancele quando quiser.
+          Cobrança recorrente, sem fidelidade. Cancele quando quiser.
         </p>
       </section>
       )}

@@ -9,9 +9,9 @@ export const APP_DOMAIN = "montei.app" // placeholder, ajustar quando o domínio
 
 /**
  * MVP com escolas piloto: sem limite de turmas nem de gerações grátis, e sem
- * cobrança (checkout do Mercado Pago já está desativado em LandingPage/LoginPage).
- * Os planos e preços continuam definidos abaixo pra quando voltarmos a vender —
- * só essa flag muda pra `false` nesse momento.
+ * cobrança (não há gateway de pagamento integrado no momento). Os planos e
+ * preços continuam definidos abaixo pra quando voltarmos a vender — só essa
+ * flag muda pra `false` nesse momento.
  */
 export const MVP_SEM_LIMITES = true
 

@@ -3,8 +3,8 @@
 > **O nome "Horária" é provisório.** Troque em [`src/config/branding.ts`](src/config/branding.ts) (`APP_NAME`, `APP_TAGLINE`, `APP_DOMAIN`) e no `<title>`/meta tags de [`index.html`](index.html) quando o nome final for escolhido. Nada mais no código precisa mudar.
 
 SaaS para escolas gerarem a grade horária automaticamente (turmas × disciplinas × professores), sem
-choques de horário. Autenticação e assinaturas rodam de verdade (Supabase + Mercado Pago); turmas,
-professores e disciplinas ainda ficam em `localStorage` por usuário (ver "O que ainda é local" abaixo).
+choques de horário. Autenticação roda de verdade (Supabase). Sem cobrança nesta fase (piloto — ver
+`MVP_SEM_LIMITES` em `src/config/branding.ts`).
 
 ## Stack
 
@@ -13,8 +13,7 @@ professores e disciplinas ainda ficam em `localStorage` por usuário (ver "O que
 - **React Router v7** — rotas client-side
 - **Framer Motion** — animações (login, hero, modal, wizard)
 - **lucide-react** — ícones
-- **Supabase** — autenticação (`src/context/AuthContext.tsx`) e banco (`profiles`, `subscriptions`) + Edge Functions
-- **Mercado Pago** (Assinaturas/Preapproval) — cobrança recorrente, via Edge Functions (ver [`supabase/README.md`](supabase/README.md))
+- **Supabase** — autenticação (`src/context/AuthContext.tsx`) e banco (turmas, professores, disciplinas, horários, perfis)
 
 ## Como rodar
 
@@ -53,32 +52,27 @@ src/
     ThemeContext.tsx         → tema claro/escuro, persistido em localStorage
     DataContext.tsx          → turmas/professores/disciplinas (ainda localStorage, ver abaixo)
   lib/scheduleGenerator.ts   → algoritmo que gera a grade evitando conflito de professores
-  services/payment.ts        → chama a Edge Function create-subscription (checkout Mercado Pago)
   hooks/useSEO.ts            → title/description/OG/canonical por página (SPA)
   components/                → Navbar, Footer, PlanBadge, ScheduleGrid, NovaTurmaModal...
   components/onboarding/      → wizard de configuração inicial (turmas/matérias/professores/dias)
   components/dashboard/       → gerenciadores de Turmas/Matérias/Professores (pós-onboarding)
   pages/
-    LandingPage.tsx           → apresentação/marketing (`/`) + botões de plano (checkout)
+    LandingPage.tsx           → apresentação/marketing (`/`) + botões de plano
     LoginPage.tsx             → login/cadastro (`/login`)
     DashboardPage.tsx         → gerador de horários + navegação lateral (`/app`, protegida)
-    PagamentoRetornoPage.tsx  → retorno do checkout do Mercado Pago (`/pagamento/retorno`)
 migrations/                  → SQL do banco (rodar no SQL Editor do Supabase)
-supabase/functions/          → Edge Functions (create-subscription, mercadopago-webhook)
 ```
 
 ## O que foi feito
 
 ### 1. Landing page de apresentação (`/`)
 Hero com CTA, seção de problema/recursos/"como funciona", **planos e preços** (toggle mensal/anual,
-calculadora de gerações grátis) e CTA final. Botões de plano pago chamam o checkout de verdade
-(ver seção de pagamento abaixo); "Começar agora"/"Teste grátis" levam pro cadastro sem passar por
-pagamento nenhum — são fluxos propositalmente diferentes.
+calculadora de gerações grátis) e CTA final. Sem cobrança nesta fase — todo botão (plano pago ou
+"Começar agora"/"Teste grátis") leva pro cadastro sem passar por pagamento nenhum.
 
 ### 2. Login/cadastro (`/login`)
-Tela dividida, animações com Framer Motion. Cadastro cria a conta no Supabase Auth; se vier de um botão
-de plano pago (`?plano=bronze`), depois de logar já continua direto pro checkout do Mercado Pago em vez
-de cair no painel.
+Tela dividida, animações com Framer Motion. Cadastro cria a conta no Supabase Auth e vai direto pro
+painel.
 
 ### 3. Wizard de configuração inicial
 Conta nova (sem turmas) cai num assistente guiado: quantas turmas → matérias em bloco → professores →
@@ -98,11 +92,9 @@ dias da semana → revisão. Só aparece uma vez; depois disso tudo fica editáv
 - Plano **Teste grátis**: limitado a 2 gerações a cada 36h (contador na lateral); exportação leva
   marca d'água (só nesse plano).
 
-### 5. Planos, preços e cobrança recorrente
+### 5. Planos e preços (sem cobrança nesta fase)
 Preços em [`src/config/branding.ts`](src/config/branding.ts) (Bronze R$49,90 / Prata R$99,90 / Ouro
-R$179,90 por mês). Cobrança de verdade via **assinatura recorrente do Mercado Pago** (Preapproval API):
-o usuário paga uma vez e o Mercado Pago cobra sozinho todo mês, sem ação manual. Ver
-[`supabase/README.md`](supabase/README.md) para o fluxo completo e os passos de deploy.
+R$179,90 por mês) — só exibição, nenhum gateway de pagamento integrado no momento.
 
 ## O que ainda é local (não migrado pro Supabase)
 
@@ -118,9 +110,7 @@ o usuário paga uma vez e o Mercado Pago cobra sozinho todo mês, sem ação man
 
 ## Próximos passos sugeridos
 
-1. Rodar a migration e conectar o backend seguindo [`supabase/README.md`](supabase/README.md).
-2. Migrar turmas/professores/disciplinas do `localStorage` pro Supabase (tabelas próprias + RLS).
-3. Decidir o nome definitivo e o domínio, e atualizar os 3 lugares que hoje têm placeholder
+1. Decidir o nome definitivo e o domínio, e atualizar os 3 lugares que hoje têm placeholder
    (`branding.ts`, `robots.txt`, `sitemap.xml`).
-4. Gerar uma imagem OG e ícone/favicon definitivos (hoje usa o SVG placeholder do Vite).
-5. Escrever Termos de Uso / Política de Privacidade antes de abrir pro público.
+2. Gerar uma imagem OG e um favicon/logo definitivos (removidos até ter uma marca de verdade).
+3. Escrever Termos de Uso / Política de Privacidade antes de abrir pro público.

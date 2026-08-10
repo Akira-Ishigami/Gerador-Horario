@@ -57,13 +57,6 @@ export default function LoginPage() {
     return <Navigate to="/app" replace />
   }
 
-  // Checkout do Mercado Pago desativado temporariamente — o caminho de
-  // pagamento está sendo reestruturado. Por enquanto sempre cai no painel,
-  // mesmo vindo de um botão de plano pago (?plano=bronze) na landing.
-  const goToAppOrCheckout = async () => {
-    navigate("/app")
-  }
-
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -81,7 +74,7 @@ export default function LoginPage() {
         setInfo("Conta criada! Verifique seu e-mail e clique no link de confirmação antes de entrar.")
         return
       }
-      await goToAppOrCheckout()
+      navigate("/app")
       return
     }
 
@@ -91,7 +84,7 @@ export default function LoginPage() {
       setError(result.error)
       return
     }
-    await goToAppOrCheckout()
+    navigate("/app")
   }
 
   const switchMode = (next: "login" | "signup") => {
