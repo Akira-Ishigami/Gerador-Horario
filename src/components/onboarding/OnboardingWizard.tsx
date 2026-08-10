@@ -95,7 +95,9 @@ export function OnboardingWizard({ onFinish }: OnboardingWizardProps) {
     disciplinas: disciplinasAtuais,
   } = useData()
 
-  const maxCount = maxTurmas ?? 10
+  // null = sem limite (fase piloto ou plano ilimitado) — Infinity faz Math.min/comparações
+  // abaixo não impor teto nenhum, igual o "∞" que o TurmasManager já mostra pra esse caso.
+  const maxCount = maxTurmas ?? Infinity
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [turmas, setTurmas] = useState<WizardTurma[]>([novaTurmaWizard()])
@@ -390,7 +392,15 @@ function StepTurmas({
         </button>
         <span className="text-sm text-slate-400">{turmas.length === 1 ? "turma" : "turmas"}</span>
       </div>
-      <p className="mt-2 text-xs text-slate-400">Seu plano permite até {maxCount} turma{maxCount > 1 ? "s" : ""}.</p>
+      <p className="mt-2 text-xs text-slate-400">
+        {Number.isFinite(maxCount) ? (
+          <>
+            Seu plano permite até {maxCount} turma{maxCount > 1 ? "s" : ""}.
+          </>
+        ) : (
+          "Sem limite de turmas nesta fase piloto."
+        )}
+      </p>
 
       {turmas.length > 1 && (
         <div className="mt-6 grid gap-3 rounded-xl border border-dashed border-slate-200 p-4 dark:border-slate-700 sm:grid-cols-2">
