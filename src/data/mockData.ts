@@ -40,9 +40,14 @@ export const DISCIPLINAS: Disciplina[] = [
 export interface Professor {
   id: string
   nome: string
-  disciplinaIds: string[]
-  /** turmas em que pode dar aula; lista vazia = qualquer turma que precise da disciplina */
-  turmaIds: string[]
+  /**
+   * disciplinaId -> turmas em que ele dá ESSA disciplina especificamente;
+   * lista vazia = qualquer turma que precise dela. Restrição por matéria (não
+   * uma única lista de turmas global) porque um professor pode dar uma
+   * matéria pra escola toda e outra só pra turmas específicas — ex: Educação
+   * Física pra todo mundo, mas Trilha só pro 8º ano.
+   */
+  turmasPorDisciplina: Record<string, string[]>
   /**
    * Dia+horário em que o professor não pode dar aula. `horario` é o mesmo
    * valor de `BlocoHorario.inicio` (ex: "07:00"), sem turno associado — é a

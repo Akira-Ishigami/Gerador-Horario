@@ -127,7 +127,7 @@ export function OnboardingWizard({ onFinish }: OnboardingWizardProps) {
   const addProfessor = () => {
     setProfessoresWizard((prev) => [
       ...prev,
-      { id: `p-novo-${Date.now()}-${prev.length}`, nome: "", disciplinaIds: [], turmaIds: [], indisponibilidades: [] },
+      { id: `p-novo-${Date.now()}-${prev.length}`, nome: "", turmasPorDisciplina: {}, indisponibilidades: [] },
     ])
   }
 
@@ -672,14 +672,16 @@ function StepProfessores({
             </div>
             <div className="mt-3 flex flex-wrap gap-1.5">
               {disciplinas.map((d) => {
-                const active = p.disciplinaIds.includes(d.id)
+                const active = d.id in p.turmasPorDisciplina
                 return (
                   <button
                     key={d.id}
                     type="button"
                     onClick={() => {
-                      const next = active ? p.disciplinaIds.filter((id) => id !== d.id) : [...p.disciplinaIds, d.id]
-                      onChange(i, { ...p, disciplinaIds: next })
+                      const next = { ...p.turmasPorDisciplina }
+                      if (active) delete next[d.id]
+                      else next[d.id] = []
+                      onChange(i, { ...p, turmasPorDisciplina: next })
                     }}
                     className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
                       active

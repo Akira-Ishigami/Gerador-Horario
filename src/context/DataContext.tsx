@@ -55,8 +55,7 @@ function professorFromRow(row: any): Professor {
   return {
     id: row.id,
     nome: row.nome,
-    disciplinaIds: row.disciplina_ids ?? [],
-    turmaIds: row.turma_ids ?? [],
+    turmasPorDisciplina: row.turmas_por_disciplina ?? {},
     indisponibilidades: row.indisponibilidades ?? [],
   }
 }
@@ -65,8 +64,7 @@ function professorToRow(p: Professor, userId: string) {
     id: p.id,
     user_id: userId,
     nome: p.nome,
-    disciplina_ids: p.disciplinaIds,
-    turma_ids: p.turmaIds,
+    turmas_por_disciplina: p.turmasPorDisciplina,
     indisponibilidades: p.indisponibilidades,
   }
 }

@@ -808,7 +808,7 @@ function AdminPanel() {
           {professores.map((p) => (
             <li key={p.id} className="flex items-center justify-between rounded-lg px-2 py-2.5 text-sm transition-colors hover:bg-slate-50 dark:hover:bg-white/5">
               <span className="font-medium text-slate-700 dark:text-slate-200">{p.nome}</span>
-              <span className="text-xs text-slate-400">{p.disciplinaIds.join(", ")}</span>
+              <span className="text-xs text-slate-400">{Object.keys(p.turmasPorDisciplina).join(", ")}</span>
             </li>
           ))}
         </ul>

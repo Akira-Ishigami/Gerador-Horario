@@ -20,12 +20,15 @@ export function ProfessoresManager() {
     setProfessores(professores.map((p, i) => (i === index ? next : p)))
   }
 
-  /** turnos em que o professor pode efetivamente dar aula — todos os configurados se não houver restrição de turma, senão o turno das turmas em que ele pode dar aula */
+  /** turnos em que o professor pode efetivamente dar aula — todos os configurados se alguma disciplina não tiver restrição de turma, senão o turno das turmas que aparecem em qualquer disciplina dele */
   const turnosDoProfessor = (p: Professor): Periodo[] => {
-    if (p.turmaIds.length === 0) {
+    const listas = Object.values(p.turmasPorDisciplina)
+    const semRestricao = listas.length === 0 || listas.some((ids) => ids.length === 0)
+    if (semRestricao) {
       return PERIODOS.filter((turno) => blocos.some((b) => b.turno === turno && b.tipo === "aula"))
     }
-    const turnosDasTurmas = turmas.filter((t) => p.turmaIds.includes(t.id)).map((t) => t.turno)
+    const turmaIdsUnicos = new Set(listas.flat())
+    const turnosDasTurmas = turmas.filter((t) => turmaIdsUnicos.has(t.id)).map((t) => t.turno)
     return PERIODOS.filter((turno) => turnosDasTurmas.includes(turno))
   }
 
@@ -46,7 +49,7 @@ export function ProfessoresManager() {
   const handleAdd = () => {
     const nome = novoNome.trim()
     if (!nome) return
-    setProfessores([...professores, { id: `p-${Date.now()}`, nome, disciplinaIds: [], turmaIds: [], indisponibilidades: [] }])
+    setProfessores([...professores, { id: `p-${Date.now()}`, nome, turmasPorDisciplina: {}, indisponibilidades: [] }])
     setNovoNome("")
   }
 
@@ -97,61 +100,83 @@ export function ProfessoresManager() {
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>
-            <div className="mt-3 flex flex-wrap gap-1.5">
+            <div className="mt-3 space-y-1.5">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                Matérias e turmas <span className="normal-case font-normal text-slate-400">(sem turma marcada = qualquer turma que precise dessa matéria)</span>
+              </p>
               {disciplinas.map((d) => {
-                const active = p.disciplinaIds.includes(d.id)
+                const ativa = d.id in p.turmasPorDisciplina
+                const turmasDaDisciplina = p.turmasPorDisciplina[d.id] ?? []
                 return (
-                  <button
+                  <div
                     key={d.id}
-                    type="button"
-                    onClick={() => {
-                      const next = active ? p.disciplinaIds.filter((id) => id !== d.id) : [...p.disciplinaIds, d.id]
-                      updateProfessor(i, { ...p, disciplinaIds: next })
-                    }}
-                    className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-                      active
-                        ? "border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300"
-                        : "border-slate-200 text-slate-500 dark:border-slate-700 dark:text-slate-400"
+                    className={`rounded-lg border p-2 transition-colors ${
+                      ativa
+                        ? "border-brand-200 bg-brand-50/40 dark:border-brand-900 dark:bg-brand-950/20"
+                        : "border-slate-100 dark:border-white/5"
                     }`}
                   >
-                    {d.nome}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const next = { ...p.turmasPorDisciplina }
+                        if (ativa) delete next[d.id]
+                        else next[d.id] = []
+                        updateProfessor(i, { ...p, turmasPorDisciplina: next })
+                      }}
+                      className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+                        ativa
+                          ? "border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300"
+                          : "border-slate-200 text-slate-500 dark:border-slate-700 dark:text-slate-400"
+                      }`}
+                    >
+                      {d.nome}
+                    </button>
+
+                    {ativa && (
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5 pl-1">
+                        <span className="text-[10px] font-medium uppercase tracking-wide text-slate-400">
+                          Turmas:
+                        </span>
+                        {turmas.map((t) => {
+                          const restrita = turmasDaDisciplina.includes(t.id)
+                          return (
+                            <button
+                              key={t.id}
+                              type="button"
+                              onClick={() => {
+                                const proximasTurmas = restrita
+                                  ? turmasDaDisciplina.filter((id) => id !== t.id)
+                                  : [...turmasDaDisciplina, t.id]
+                                updateProfessor(i, {
+                                  ...p,
+                                  turmasPorDisciplina: { ...p.turmasPorDisciplina, [d.id]: proximasTurmas },
+                                })
+                              }}
+                              className={`rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
+                                restrita
+                                  ? "border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300"
+                                  : "border-slate-200 text-slate-500 dark:border-slate-700 dark:text-slate-400"
+                              }`}
+                            >
+                              {t.nome}
+                            </button>
+                          )
+                        })}
+                        {turmas.length === 0 && (
+                          <span className="text-[11px] text-slate-400">Cadastre turmas primeiro.</span>
+                        )}
+                        {turmas.length > 0 && turmasDaDisciplina.length === 0 && (
+                          <span className="text-[11px] italic text-slate-400">(todas as turmas)</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 )
               })}
               {disciplinas.length === 0 && (
                 <p className="text-xs text-slate-400">Cadastre matérias primeiro para poder atribuí-las.</p>
               )}
-            </div>
-
-            <div className="mt-3 border-t border-slate-100 pt-3 dark:border-white/10">
-              <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-400">
-                Pode dar aula em <span className="normal-case font-normal text-slate-400">(nenhuma marcada = qualquer turma)</span>
-              </p>
-              <div className="mt-1.5 flex flex-wrap gap-1.5">
-                {turmas.map((t) => {
-                  const active = p.turmaIds.includes(t.id)
-                  return (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => {
-                        const next = active ? p.turmaIds.filter((id) => id !== t.id) : [...p.turmaIds, t.id]
-                        updateProfessor(i, { ...p, turmaIds: next })
-                      }}
-                      className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
-                        active
-                          ? "border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300"
-                          : "border-slate-200 text-slate-500 dark:border-slate-700 dark:text-slate-400"
-                      }`}
-                    >
-                      {t.nome}
-                    </button>
-                  )
-                })}
-                {turmas.length === 0 && (
-                  <p className="text-xs text-slate-400">Cadastre turmas primeiro para poder restringir.</p>
-                )}
-              </div>
             </div>
 
             <div className="mt-3 border-t border-slate-100 pt-3 dark:border-white/10">

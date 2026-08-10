@@ -196,11 +196,13 @@ export function gerarHorarios(
     grades[turma.id] = emptyGrade((blocosPorTurno.get(turma.turno) ?? []).length)
   }
 
-  // turmaIds vazio = professor aceita qualquer turma que precise da disciplina
+  // turmas vazio pra essa disciplina = professor aceita qualquer turma que precise dela
   const professorPorDisciplina = (disciplinaId: string, turmaId: string): Professor[] =>
-    professores.filter(
-      (p) => p.disciplinaIds.includes(disciplinaId) && (p.turmaIds.length === 0 || p.turmaIds.includes(turmaId)),
-    )
+    professores.filter((p) => {
+      const turmasPermitidas = p.turmasPorDisciplina[disciplinaId]
+      if (turmasPermitidas === undefined) return false
+      return turmasPermitidas.length === 0 || turmasPermitidas.includes(turmaId)
+    })
 
   // --- fila global de necessidades (todas as turmas competem pela mesma fila,
   // já que professor é recurso compartilhado entre elas) ---
