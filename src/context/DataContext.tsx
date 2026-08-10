@@ -12,6 +12,7 @@ interface DataContextValue {
   removeTurma: (id: string) => void
   updateTurma: (turmaId: string, changes: Partial<Omit<Turma, "id">>) => void
   updateCargaHoraria: (turmaId: string, disciplinaId: string, quantidade: number) => void
+  updateCargaHorariaGeminada: (turmaId: string, disciplinaId: string, geminada: boolean) => void
   limiteAtingido: boolean
   maxTurmas: number | null
   professores: Professor[]
@@ -33,6 +34,7 @@ function turmaFromRow(row: any): Turma {
     turno: row.turno,
     sala: row.sala ?? undefined,
     cargaHoraria: row.carga_horaria ?? {},
+    cargaHorariaGeminada: row.carga_horaria_geminada ?? {},
     diasFuncionamento: row.dias_funcionamento ?? [],
   }
 }
@@ -44,15 +46,29 @@ function turmaToRow(t: Turma, userId: string) {
     turno: t.turno,
     sala: t.sala ?? null,
     carga_horaria: t.cargaHoraria,
+    carga_horaria_geminada: t.cargaHorariaGeminada,
     dias_funcionamento: t.diasFuncionamento,
   }
 }
 
 function professorFromRow(row: any): Professor {
-  return { id: row.id, nome: row.nome, disciplinaIds: row.disciplina_ids ?? [], turmaIds: row.turma_ids ?? [] }
+  return {
+    id: row.id,
+    nome: row.nome,
+    disciplinaIds: row.disciplina_ids ?? [],
+    turmaIds: row.turma_ids ?? [],
+    indisponibilidades: row.indisponibilidades ?? [],
+  }
 }
 function professorToRow(p: Professor, userId: string) {
-  return { id: p.id, user_id: userId, nome: p.nome, disciplina_ids: p.disciplinaIds, turma_ids: p.turmaIds }
+  return {
+    id: p.id,
+    user_id: userId,
+    nome: p.nome,
+    disciplina_ids: p.disciplinaIds,
+    turma_ids: p.turmaIds,
+    indisponibilidades: p.indisponibilidades,
+  }
 }
 
 function disciplinaFromRow(row: any): Disciplina {
@@ -252,6 +268,28 @@ export function DataProvider({ children }: { children: ReactNode }) {
       })
   }
 
+  const updateCargaHorariaGeminada = (turmaId: string, disciplinaId: string, geminada: boolean) => {
+    // mesmo motivo do updateCargaHoraria: computa dentro do updater, não do
+    // fechamento — o modo "Todos" chama isso uma vez por turma no mesmo clique.
+    let novaGeminada: Record<string, boolean> | null = null
+    setTurmas((prev) =>
+      prev.map((t) => {
+        if (t.id !== turmaId) return t
+        novaGeminada = { ...t.cargaHorariaGeminada, [disciplinaId]: geminada }
+        return { ...t, cargaHorariaGeminada: novaGeminada }
+      }),
+    )
+    if (!user || !novaGeminada) return
+    supabase
+      .from("turmas")
+      .update({ carga_horaria_geminada: novaGeminada })
+      .eq("user_id", user.id)
+      .eq("id", turmaId)
+      .then(({ error }) => {
+        if (error) console.error("Erro ao atualizar aula geminada:", error)
+      })
+  }
+
   const setProfessores = (next: Professor[]) => {
     const prev = professores
     setProfessoresState(next)
@@ -278,6 +316,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       removeTurma,
       updateTurma,
       updateCargaHoraria,
+      updateCargaHorariaGeminada,
       limiteAtingido,
       maxTurmas,
       professores,

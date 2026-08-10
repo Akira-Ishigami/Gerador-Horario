@@ -105,7 +105,14 @@ export function TurmasManager() {
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         onCreate={(nome, turno, sala) =>
-          addTurma({ nome, turno, sala, cargaHoraria: {}, diasFuncionamento: ["Seg", "Ter", "Qua", "Qui", "Sex"] })
+          addTurma({
+            nome,
+            turno,
+            sala,
+            cargaHoraria: {},
+            cargaHorariaGeminada: {},
+            diasFuncionamento: ["Seg", "Ter", "Qua", "Qui", "Sex"],
+          })
         }
       />
     </div>

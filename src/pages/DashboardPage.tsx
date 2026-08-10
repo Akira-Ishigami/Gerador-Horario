@@ -7,13 +7,14 @@ import {
   CalendarClock,
   Check,
   Clock,
+  FileSpreadsheet,
   GraduationCap,
   Lightbulb,
+  Link2,
   LogOut,
   Minus,
   Monitor,
   Plus,
-  Printer,
   Save,
   Settings,
   Shield,
@@ -45,6 +46,7 @@ const NAV_ITEMS = [
   { id: "professores", label: "Professores", icon: GraduationCap },
   { id: "configuracoes", label: "Configurações", icon: Settings },
   { id: "grade-escolar", label: "Grade Escolar", icon: Sparkles },
+  { id: "exportar", label: "Exportar", icon: FileSpreadsheet },
 ] as const
 
 type TabId = (typeof NAV_ITEMS)[number]["id"] | "admin"
@@ -131,7 +133,8 @@ export default function DashboardPage() {
   })
 
   const { user, logout } = useAuth()
-  const { loading: dataLoading, turmas, updateCargaHoraria, professores, disciplinas, blocos } = useData()
+  const { loading: dataLoading, turmas, updateCargaHoraria, updateCargaHorariaGeminada, professores, disciplinas, blocos } =
+    useData()
   const { remainingMs: freeGenRemaining, usesLeft: freeGenUsesLeft, registrarGeracao } = useFreeGenCooldown(
     !MVP_SEM_LIMITES && user?.plan === "teste" ? user.id : "",
   )
@@ -146,7 +149,7 @@ export default function DashboardPage() {
   const [salvo, setSalvo] = useState(false)
   const [tab, setTab] = useState<TabId>("carga-horaria")
   const [filtroTurmaId, setFiltroTurmaId] = useState<string>("todos")
-  const [printTargetId, setPrintTargetId] = useState<string | null>(null)
+  const [exportando, setExportando] = useState<"todos" | "professores" | "alunos" | null>(null)
   const [mostrarDicas, setMostrarDicas] = useState(() => localStorage.getItem("horaria_dicas_dispensadas") !== "true")
 
   useEffect(() => {
@@ -160,12 +163,6 @@ export default function DashboardPage() {
       setFiltroTurmaId("todos")
     }
   }, [turmas, filtroTurmaId])
-
-  useEffect(() => {
-    if (!printTargetId) return
-    window.print()
-    setPrintTargetId(null)
-  }, [printTargetId])
 
   useEffect(() => {
     if (!user) {
@@ -315,12 +312,12 @@ export default function DashboardPage() {
 
       </header>
 
-      <main className="print-main mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-6 flex items-center gap-2 rounded-xl border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs text-amber-800 print:hidden dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300 lg:hidden">
           <Monitor className="h-4 w-4 shrink-0" />
           Pra melhor visualização, acesse pelo computador — o celular ainda tá em ajustes.
         </div>
-        <div className="print-grid grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
+        <div className="grid gap-6 lg:grid-cols-[240px_minmax(0,1fr)]">
           {/* Sidebar: navegação */}
           <aside className="space-y-4 self-start print:hidden lg:sticky lg:top-20">
             <PlanBadge planId={user.plan} turmasUsadas={turmas.length} />
@@ -460,6 +457,7 @@ export default function DashboardPage() {
                           const valores = turmas.map((t) => t.cargaHoraria[d.id] ?? 0)
                           const valor = valores[0] ?? 0
                           const dessincronizado = valores.some((v) => v !== valor)
+                          const geminada = turmas[0]?.cargaHorariaGeminada[d.id] ?? false
                           return (
                             <div
                               key={d.id}
@@ -491,6 +489,18 @@ export default function DashboardPage() {
                                   <Plus className="h-3 w-3" />
                                 </button>
                               </div>
+                              <button
+                                type="button"
+                                onClick={() => turmas.forEach((t) => updateCargaHorariaGeminada(t.id, d.id, !geminada))}
+                                title="Tenta encaixar 2 aulas seguidas no mesmo dia em vez de espalhadas"
+                                className={`mt-1.5 flex w-full items-center justify-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-medium transition-colors ${
+                                  geminada
+                                    ? "border-brand-300 bg-brand-50 text-brand-700 dark:border-brand-800 dark:bg-brand-950/40 dark:text-brand-300"
+                                    : "border-slate-200 text-slate-400 hover:border-slate-300 dark:border-slate-700"
+                                }`}
+                              >
+                                <Link2 className="h-2.5 w-2.5" /> Geminada
+                              </button>
                             </div>
                           )
                         })}
@@ -511,6 +521,7 @@ export default function DashboardPage() {
                           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                             {disciplinas.map((d) => {
                               const valor = turma.cargaHoraria[d.id] ?? 0
+                              const geminada = turma.cargaHorariaGeminada[d.id] ?? false
                               return (
                                 <div
                                   key={d.id}
@@ -535,6 +546,18 @@ export default function DashboardPage() {
                                       <Plus className="h-3 w-3" />
                                     </button>
                                   </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => updateCargaHorariaGeminada(turma.id, d.id, !geminada)}
+                                    title="Tenta encaixar 2 aulas seguidas no mesmo dia em vez de espalhadas"
+                                    className={`mt-1.5 flex w-full items-center justify-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-medium transition-colors ${
+                                      geminada
+                                        ? "border-brand-300 bg-brand-50 text-brand-700 dark:border-brand-800 dark:bg-brand-950/40 dark:text-brand-300"
+                                        : "border-slate-200 text-slate-400 hover:border-slate-300 dark:border-slate-700"
+                                    }`}
+                                  >
+                                    <Link2 className="h-2.5 w-2.5" /> Geminada
+                                  </button>
                                 </div>
                               )
                             })}
@@ -630,18 +653,6 @@ export default function DashboardPage() {
                         {salvo ? "Salvo!" : "Salvar horário"}
                       </button>
                     )}
-                    {schedule && turmas.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setFiltroTurmaId("todos")
-                          setPrintTargetId("todos")
-                        }}
-                        className="flex items-center gap-1.5 rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-600 hover:border-brand-300 hover:text-brand-600 dark:border-white/10 dark:text-slate-300"
-                      >
-                        <Printer className="h-4 w-4" /> Exportar todos
-                      </button>
-                    )}
                     <button
                       type="button"
                       onClick={handleGerar}
@@ -676,30 +687,12 @@ export default function DashboardPage() {
                     )}
 
                     <div className="space-y-6">
-                      {turmasFiltradas.map((turma) => {
-                        const ehAlvoImpressao = printTargetId === turma.id || printTargetId === "todos"
-                        return (
-                        <div
-                          key={turma.id}
-                          className={
-                            !MVP_SEM_LIMITES && user.plan === "teste"
-                              ? `watermark-teste${ehAlvoImpressao ? " print-target" : ""}`
-                              : ehAlvoImpressao
-                                ? "print-target"
-                                : undefined
-                          }
-                        >
+                      {turmasFiltradas.map((turma) => (
+                        <div key={turma.id}>
                           <div className="mb-3 flex items-center justify-between">
                             <h2 className="font-display text-base font-semibold text-slate-800 dark:text-white">
                               Grade horária · {turma.nome}
                             </h2>
-                            <button
-                              type="button"
-                              onClick={() => setPrintTargetId(turma.id)}
-                              className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-brand-400 hover:text-brand-600 dark:border-slate-700 dark:text-slate-300 print:hidden"
-                            >
-                              <Printer className="h-3.5 w-3.5" /> Exportar / imprimir
-                            </button>
                           </div>
                           <ScheduleGrid
                             grade={schedule?.grades[turma.id] ?? null}
@@ -709,8 +702,7 @@ export default function DashboardPage() {
                             }
                           />
                         </div>
-                        )
-                      })}
+                      ))}
                     </div>
                   </>
                 ) : (
@@ -726,6 +718,76 @@ export default function DashboardPage() {
             {tab === "materias" && <MateriasManager />}
             {tab === "professores" && <ProfessoresManager />}
             {tab === "configuracoes" && <BlocosManager />}
+
+            {tab === "exportar" && (
+              <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900">
+                <h2 className="font-display text-base font-semibold text-slate-800 dark:text-white">Exportar</h2>
+                <p className="mb-4 text-xs text-slate-400">
+                  Baixa um Excel com uma planilha por turma (grade completa) e uma por professor (só as aulas dele,
+                  juntando todas as turmas que ele dá aula) — fácil de ajustar e imprimir do jeito que quiser.
+                </p>
+                {schedule ? (
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setExportando("todos")
+                        try {
+                          const { exportarExcelCompleto } = await import("@/lib/exportExcel")
+                          await exportarExcelCompleto(turmas, professores, disciplinas, blocos, schedule)
+                        } finally {
+                          setExportando(null)
+                        }
+                      }}
+                      disabled={exportando !== null}
+                      className="flex items-center gap-2 rounded-xl bg-linear-to-r from-brand-600 to-accent-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-brand-600/30 transition-transform hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <FileSpreadsheet className="h-4 w-4" />
+                      {exportando === "todos" ? "Gerando..." : "Exportar todos"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setExportando("professores")
+                        try {
+                          const { exportarExcelProfessores } = await import("@/lib/exportExcel")
+                          await exportarExcelProfessores(turmas, professores, disciplinas, blocos, schedule)
+                        } finally {
+                          setExportando(null)
+                        }
+                      }}
+                      disabled={exportando !== null}
+                      className="flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:border-brand-300 hover:text-brand-600 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:text-slate-300"
+                    >
+                      <GraduationCap className="h-4 w-4" />
+                      {exportando === "professores" ? "Gerando..." : "Exportar professores"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        setExportando("alunos")
+                        try {
+                          const { exportarExcelTurmas } = await import("@/lib/exportExcel")
+                          await exportarExcelTurmas(turmas, professores, disciplinas, blocos, schedule)
+                        } finally {
+                          setExportando(null)
+                        }
+                      }}
+                      disabled={exportando !== null}
+                      className="flex items-center gap-2 rounded-xl border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:border-brand-300 hover:text-brand-600 disabled:cursor-not-allowed disabled:opacity-60 dark:border-white/10 dark:text-slate-300"
+                    >
+                      <UsersIcon className="h-4 w-4" />
+                      {exportando === "alunos" ? "Gerando..." : "Exportar alunos"}
+                    </button>
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-400">
+                    Gere os horários na aba "Grade Escolar" primeiro pra poder exportar.
+                  </p>
+                )}
+              </div>
+            )}
+
             {tab === "admin" && user.role === "admin" && <AdminPanel />}
           </section>
         </div>

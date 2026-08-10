@@ -43,6 +43,16 @@ export interface Professor {
   disciplinaIds: string[]
   /** turmas em que pode dar aula; lista vazia = qualquer turma que precise da disciplina */
   turmaIds: string[]
+  /**
+   * Dia+horário em que o professor não pode dar aula. `horario` é o mesmo
+   * valor de `BlocoHorario.inicio` (ex: "07:00"), sem turno associado — é a
+   * mesma convenção da chave de ocupação do gerador, então funciona igual
+   * pra qualquer turno em que o professor der aula. Se um horário for
+   * editado depois em Configurações, indisponibilidades salvas com o valor
+   * antigo simplesmente param de bater com nada (ficam "órfãs") — aceito
+   * como limitação por enquanto, sem lógica de limpeza automática.
+   */
+  indisponibilidades: { dia: DiaSemana; horario: string }[]
 }
 
 export type Periodo = "matutino" | "vespertino" | "noturno" | "integral"
@@ -57,6 +67,8 @@ export interface Turma {
   sala?: string
   /** quantidade de aulas semanais por disciplina */
   cargaHoraria: Record<string, number>
+  /** true = tenta encaixar as aulas dessa matéria em pares (2 seguidas, mesmo dia) em vez de espalhadas */
+  cargaHorariaGeminada: Record<string, boolean>
   /**
    * Dias da semana em que a turma tem aula. Capturado no wizard de
    * configuração, mas o gerador/grade ainda considera só Segunda a Sexta
