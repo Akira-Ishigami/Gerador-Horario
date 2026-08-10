@@ -2,7 +2,6 @@ import { useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   BookOpen,
-  CalendarClock,
   CalendarDays,
   Check,
   CheckCircle2,
@@ -203,8 +202,8 @@ export function OnboardingWizard({ onFinish }: OnboardingWizardProps) {
       <header className="border-b border-slate-200 bg-white dark:border-white/10 dark:bg-slate-900">
         <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-4">
           <div className="flex items-center gap-2 font-display text-lg font-bold text-slate-900 dark:text-white">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-brand-500 to-accent-500 text-white shadow-lg shadow-brand-500/30">
-              <CalendarClock className="h-5 w-5" strokeWidth={2.25} />
+            <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-white shadow-lg shadow-brand-500/30">
+              <img src="/images/icon.png" alt="" className="h-full w-full object-cover" />
             </span>
             {APP_NAME}
           </div>

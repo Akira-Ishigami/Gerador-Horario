@@ -1,5 +1,4 @@
 import { useRef } from "react"
-import { CalendarClock } from "lucide-react"
 import { APP_NAME, APP_TAGLINE } from "@/config/branding"
 
 const LINKS = [
@@ -35,8 +34,8 @@ export function Footer() {
       <div className="relative mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="flex flex-wrap items-center justify-between gap-x-8 gap-y-6">
           <div className="flex items-center gap-2.5 font-landing-display text-base font-bold text-white">
-            <span className="flex h-7 w-7 rotate-3 items-center justify-center rounded-lg bg-brand-500 text-white">
-              <CalendarClock className="h-3.5 w-3.5" strokeWidth={2.25} />
+            <span className="flex h-7 w-7 rotate-3 items-center justify-center overflow-hidden rounded-lg bg-white">
+              <img src="/images/icon.png" alt="" className="h-full w-full object-cover" />
             </span>
             {APP_NAME}
             <span className="hidden font-landing-sans text-sm font-normal text-stone-500 lg:inline">— {APP_TAGLINE}</span>

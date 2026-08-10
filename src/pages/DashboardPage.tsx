@@ -273,8 +273,8 @@ export default function DashboardPage() {
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/90 shadow-sm backdrop-blur dark:border-white/10 dark:bg-slate-950/90 print:hidden">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link to="/" className="group flex items-center gap-2 font-display text-lg font-bold text-slate-900 dark:text-white">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-linear-to-br from-brand-500 to-accent-500 text-white shadow-lg shadow-brand-500/30 transition-transform duration-300 group-hover:rotate-6">
-              <CalendarClock className="h-5 w-5" strokeWidth={2.25} />
+            <span className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-xl bg-white shadow-lg shadow-brand-500/30 transition-transform duration-300 group-hover:rotate-6">
+              <img src="/images/icon.png" alt="" className="h-full w-full object-cover" />
             </span>
             {APP_NAME}
           </Link>

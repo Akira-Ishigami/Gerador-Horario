@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom"
-import { CalendarClock, User } from "lucide-react"
+import { User } from "lucide-react"
 import { APP_NAME } from "@/config/branding"
 
 // Seção de planos/preços tirada do ar temporariamente (MVP com escolas piloto,
@@ -18,8 +18,8 @@ export function Navbar() {
       <div className="border-b border-stone-900/10 bg-stone-50/80 backdrop-blur-lg">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link to="/" className="group flex items-center gap-2.5 font-landing-display text-lg font-bold text-stone-900">
-            <span className="flex h-9 w-9 rotate-3 items-center justify-center rounded-lg bg-stone-900 text-white shadow-[3px_3px_0_0_var(--color-brand-500)] transition-transform duration-300 group-hover:rotate-0">
-              <CalendarClock className="h-5 w-5" strokeWidth={2.25} />
+            <span className="flex h-9 w-9 rotate-3 items-center justify-center overflow-hidden rounded-lg bg-white shadow-[3px_3px_0_0_var(--color-brand-500)] transition-transform duration-300 group-hover:rotate-0">
+              <img src="/images/icon.png" alt="" className="h-full w-full object-cover" />
             </span>
             {APP_NAME}
           </Link>

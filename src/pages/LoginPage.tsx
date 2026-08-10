@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react"
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom"
 import { motion } from "framer-motion"
-import { CalendarClock, Eye, EyeOff, Lock, Mail, ShieldCheck, User as UserIcon, Zap } from "lucide-react"
+import { Eye, EyeOff, Lock, Mail, ShieldCheck, User as UserIcon, Zap } from "lucide-react"
 import { useAuth } from "@/context/AuthContext"
 import { APP_NAME, APP_TAGLINE } from "@/config/branding"
 import { useSEO } from "@/hooks/useSEO"
@@ -101,8 +101,8 @@ export default function LoginPage() {
         <div className="animate-orbit pointer-events-none absolute -left-24 -top-24 h-80 w-80 rounded-full border border-dashed border-brand-300/40" />
 
         <Link to="/" className="group relative z-10 flex items-center gap-2 font-landing-display text-lg font-bold text-stone-950">
-          <span className="flex h-9 w-9 rotate-3 items-center justify-center rounded-lg bg-stone-900 text-white shadow-[3px_3px_0_0_var(--color-brand-500)] transition-transform duration-300 group-hover:rotate-0">
-            <CalendarClock className="h-5 w-5" strokeWidth={2.25} />
+          <span className="flex h-9 w-9 rotate-3 items-center justify-center overflow-hidden rounded-lg bg-white shadow-[3px_3px_0_0_var(--color-brand-500)] transition-transform duration-300 group-hover:rotate-0">
+            <img src="/images/icon.png" alt="" className="h-full w-full object-cover" />
           </span>
           {APP_NAME}
         </Link>
@@ -174,8 +174,8 @@ export default function LoginPage() {
       <div className="flex flex-col justify-center px-6 py-12 sm:px-12 lg:px-20">
         <div className="mb-8 flex items-center justify-between lg:justify-end">
           <Link to="/" className="flex items-center gap-2 font-landing-display text-lg font-bold text-stone-950 lg:hidden">
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-stone-900 text-white">
-              <CalendarClock className="h-4 w-4" />
+            <span className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg bg-white">
+              <img src="/images/icon.png" alt="" className="h-full w-full object-cover" />
             </span>
             {APP_NAME}
           </Link>
