@@ -3,4 +3,4 @@ Allow: /
 Disallow: /login
 Disallow: /app
 
-Sitemap: https://horaria.app/sitemap.xml
+Sitemap: https://montei.app/sitemap.xml

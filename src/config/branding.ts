@@ -1,13 +1,11 @@
 /**
  * Ponto único de configuração de marca.
- * O nome do produto ainda não foi definido — troque APP_NAME (e o <title>/meta em index.html)
- * quando o nome final for escolhido. Nada mais no app precisa mudar.
  */
-export const APP_NAME = "Horária"
+export const APP_NAME = "Montei"
 export const APP_TAGLINE = "Grade horária pronta em minutos, não em semanas."
 export const APP_DESCRIPTION =
-  "Horária é o gerador de horários escolares que monta a grade da sua escola automaticamente, sem conflitos de professores ou turmas."
-export const APP_DOMAIN = "horaria.app" // placeholder, ajustar quando o domínio for definido
+  "Montei é o gerador de horários escolares que monta a grade da sua escola automaticamente, sem conflitos de professores ou turmas."
+export const APP_DOMAIN = "montei.app" // placeholder, ajustar quando o domínio for definido
 
 /**
  * MVP com escolas piloto: sem limite de turmas nem de gerações grátis, e sem
