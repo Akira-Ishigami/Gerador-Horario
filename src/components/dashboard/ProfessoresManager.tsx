@@ -1,8 +1,8 @@
 import { useState } from "react"
-import { AnimatePresence, motion } from "framer-motion"
-import { Check, ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react"
+import { BookOpen, ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react"
 import { useData } from "@/context/DataContext"
 import { DIAS_SEMANA, PERIODOS, type DiaSemana, type Periodo, type Professor } from "@/data/mockData"
+import { MateriasProfessorModal } from "@/components/dashboard/MateriasProfessorModal"
 
 const TURNO_LABEL: Record<Periodo, string> = {
   matutino: "Matutino",
@@ -11,18 +11,12 @@ const TURNO_LABEL: Record<Periodo, string> = {
   integral: "Integral",
 }
 
-const pillClasse = (ativa: boolean) =>
-  `rounded-full border px-2.5 py-0.5 text-[11px] font-medium transition-colors ${
-    ativa
-      ? "border-brand-500 bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300"
-      : "border-slate-200 text-slate-500 hover:border-slate-300 dark:border-slate-700 dark:text-slate-400 dark:hover:border-slate-600"
-  }`
-
 export function ProfessoresManager() {
   const { professores, setProfessores, disciplinas, turmas, blocos } = useData()
   const [novoNome, setNovoNome] = useState("")
   const [expandidoId, setExpandidoId] = useState<string | null>(null)
   const [turnoSelecionado, setTurnoSelecionado] = useState<Record<string, Periodo>>({})
+  const [modalProfessorId, setModalProfessorId] = useState<string | null>(null)
 
   const updateProfessor = (index: number, next: Professor) => {
     setProfessores(professores.map((p, i) => (i === index ? next : p)))
@@ -108,107 +102,21 @@ export function ProfessoresManager() {
                 <Trash2 className="h-4 w-4" />
               </button>
             </div>
-            <div className="mt-3">
-              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+            <button
+              type="button"
+              onClick={() => setModalProfessorId(p.id)}
+              className="mt-3 flex w-full items-center justify-between gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:border-brand-300 hover:text-brand-600 dark:border-white/10 dark:text-slate-300"
+            >
+              <span className="flex items-center gap-2">
+                <BookOpen className="h-4 w-4" />
                 Matérias e turmas
-              </p>
-              <div className="space-y-1 rounded-xl border border-slate-100 p-1 dark:border-white/5">
-                {disciplinas.map((d) => {
-                  const ativa = d.id in p.turmasPorDisciplina
-                  const turmasDaDisciplina = p.turmasPorDisciplina[d.id] ?? []
-                  const todasAsTurmas = turmasDaDisciplina.length === 0
-                  return (
-                    <div key={d.id} className="overflow-hidden rounded-lg">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const next = { ...p.turmasPorDisciplina }
-                          if (ativa) delete next[d.id]
-                          else next[d.id] = []
-                          updateProfessor(i, { ...p, turmasPorDisciplina: next })
-                        }}
-                        className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-slate-50 dark:hover:bg-white/5"
-                      >
-                        <span
-                          className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition-colors"
-                          style={{
-                            borderColor: ativa ? d.cor : undefined,
-                            backgroundColor: ativa ? d.cor : "transparent",
-                          }}
-                        >
-                          {ativa && <Check className="h-2.5 w-2.5 text-white" strokeWidth={3} />}
-                        </span>
-                        <span
-                          className={`text-sm font-medium transition-colors ${
-                            ativa ? "text-slate-800 dark:text-white" : "text-slate-400 dark:text-slate-500"
-                          }`}
-                        >
-                          {d.nome}
-                        </span>
-                        {ativa && !todasAsTurmas && (
-                          <span className="ml-auto shrink-0 text-[11px] text-slate-400">
-                            {turmasDaDisciplina.length} turma{turmasDaDisciplina.length !== 1 ? "s" : ""}
-                          </span>
-                        )}
-                      </button>
-
-                      <AnimatePresence initial={false}>
-                        {ativa && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            transition={{ duration: 0.18, ease: "easeInOut" }}
-                          >
-                            <div className="flex flex-wrap gap-1.5 py-1.5 pl-8 pr-2">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  updateProfessor(i, {
-                                    ...p,
-                                    turmasPorDisciplina: { ...p.turmasPorDisciplina, [d.id]: [] },
-                                  })
-                                }
-                                className={pillClasse(todasAsTurmas)}
-                              >
-                                Todas as turmas
-                              </button>
-                              {turmas.map((t) => {
-                                const restrita = turmasDaDisciplina.includes(t.id)
-                                return (
-                                  <button
-                                    key={t.id}
-                                    type="button"
-                                    onClick={() => {
-                                      const proximasTurmas = restrita
-                                        ? turmasDaDisciplina.filter((id) => id !== t.id)
-                                        : [...turmasDaDisciplina, t.id]
-                                      updateProfessor(i, {
-                                        ...p,
-                                        turmasPorDisciplina: { ...p.turmasPorDisciplina, [d.id]: proximasTurmas },
-                                      })
-                                    }}
-                                    className={pillClasse(restrita)}
-                                  >
-                                    {t.nome}
-                                  </button>
-                                )
-                              })}
-                              {turmas.length === 0 && (
-                                <span className="text-[11px] text-slate-400">Cadastre turmas primeiro.</span>
-                              )}
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  )
-                })}
-                {disciplinas.length === 0 && (
-                  <p className="px-2 py-1.5 text-xs text-slate-400">Cadastre matérias primeiro para poder atribuí-las.</p>
-                )}
-              </div>
-            </div>
+              </span>
+              <span className="text-xs text-slate-400">
+                {Object.keys(p.turmasPorDisciplina).length === 0
+                  ? "nenhuma matéria"
+                  : `${Object.keys(p.turmasPorDisciplina).length} matéria${Object.keys(p.turmasPorDisciplina).length !== 1 ? "s" : ""}`}
+              </span>
+            </button>
 
             <div className="mt-3 border-t border-slate-100 pt-3 dark:border-white/10">
               <button
@@ -330,6 +238,17 @@ export function ProfessoresManager() {
           </p>
         )}
       </div>
+
+      <MateriasProfessorModal
+        professor={professores.find((p) => p.id === modalProfessorId) ?? null}
+        disciplinas={disciplinas}
+        turmas={turmas}
+        onClose={() => setModalProfessorId(null)}
+        onChange={(next) => {
+          const index = professores.findIndex((p) => p.id === modalProfessorId)
+          if (index !== -1) updateProfessor(index, next)
+        }}
+      />
     </div>
   )
 }
