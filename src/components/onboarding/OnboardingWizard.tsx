@@ -379,9 +379,18 @@ function StepTurmas({
         >
           <Minus className="h-4 w-4" />
         </button>
-        <span className="w-14 text-center font-display text-4xl font-bold text-brand-600 dark:text-brand-400">
-          {turmas.length}
-        </span>
+        <input
+          type="number"
+          min={1}
+          max={Number.isFinite(maxCount) ? maxCount : undefined}
+          value={turmas.length}
+          onChange={(e) => {
+            const valor = parseInt(e.target.value, 10)
+            if (!Number.isNaN(valor)) onCountChange(valor)
+          }}
+          aria-label="Quantidade de turmas"
+          className="w-20 rounded-lg border border-transparent bg-transparent text-center font-display text-4xl font-bold text-brand-600 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:text-brand-400 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        />
         <button
           type="button"
           onClick={() => onCountChange(turmas.length + 1)}
