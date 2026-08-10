@@ -1,5 +1,10 @@
 # Images
 
-Logo definitiva, favicon final, `og:image` e outras fotos/artes do produto entram aqui.
+Logo definitiva, `og:image` e outras fotos/artes do produto entram aqui.
 
-Hoje o app usa só `public/favicon.svg` (placeholder do Vite) — troque quando tiver a arte final.
+O favicon fica direto em `public/favicon.ico` (não aqui em `images/`) — é referenciado
+por `<link rel="icon" href="/favicon.ico">` no `index.html`. Pra trocar, é só
+substituir o arquivo mantendo esse mesmo nome.
+
+Ainda falta uma `og:image` (imagem que aparece ao compartilhar o link em
+redes sociais/WhatsApp) — quando tiver, referencie em `src/hooks/useSEO.ts`.
