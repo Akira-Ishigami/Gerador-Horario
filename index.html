@@ -39,17 +39,6 @@
       }
     </script>
 
-    <script>
-      // Evita "flash" de tema errado: aplica a classe antes do primeiro paint.
-      // Padrão é sempre claro — só fica escuro se o usuário já clicou no botão antes
-      // (ignora prefers-color-scheme de propósito, ver pedido do dono do produto).
-      (function () {
-        try {
-          var saved = localStorage.getItem("horaria_theme_v2")
-          if (saved === "dark") document.documentElement.classList.add("dark")
-        } catch (e) {}
-      })()
-    </script>
   </head>
   <body>
     <div id="root"></div>

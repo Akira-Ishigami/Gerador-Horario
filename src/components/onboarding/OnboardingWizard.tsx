@@ -10,6 +10,7 @@ import {
   LogOut,
   Minus,
   Plus,
+  School,
   Trash2,
   Users,
 } from "lucide-react"
@@ -68,8 +69,9 @@ const PALETA_CORES = [
 ]
 
 const STEPS = [
+  { label: "Instituição", icon: School },
   { label: "Turmas", icon: Users },
-  { label: "Matérias", icon: BookOpen },
+  { label: "Disciplinas", icon: BookOpen },
   { label: "Professores", icon: GraduationCap },
   { label: "Dias", icon: CalendarDays },
   { label: "Revisão", icon: CheckCircle2 },
@@ -84,7 +86,7 @@ interface OnboardingWizardProps {
 }
 
 export function OnboardingWizard({ onFinish }: OnboardingWizardProps) {
-  const { logout } = useAuth()
+  const { user, logout, updateNomeInstituicao } = useAuth()
   const {
     addTurma,
     setProfessores: saveProfessores,
@@ -99,6 +101,7 @@ export function OnboardingWizard({ onFinish }: OnboardingWizardProps) {
   const maxCount = maxTurmas ?? Infinity
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
+  const [nomeInstituicao, setNomeInstituicao] = useState(user?.nomeInstituicao ?? "")
   const [turmas, setTurmas] = useState<WizardTurma[]>([novaTurmaWizard()])
   const [professores, setProfessoresWizard] = useState<Professor[]>(
     professoresAtuais.length > 0 ? professoresAtuais.map((p) => ({ ...p })) : [],
@@ -148,13 +151,14 @@ export function OnboardingWizard({ onFinish }: OnboardingWizardProps) {
   }
 
   const canContinue = () => {
-    if (step === 1) return turmas.every((t) => t.nome.trim().length > 0) && indicesNomeDuplicado(turmas).size === 0
-    if (step === 3) return professores.some((p) => p.nome.trim().length > 0)
+    if (step === 1) return nomeInstituicao.trim().length > 0
+    if (step === 2) return turmas.every((t) => t.nome.trim().length > 0) && indicesNomeDuplicado(turmas).size === 0
+    if (step === 4) return professores.some((p) => p.nome.trim().length > 0)
     return true
   }
 
-  const step1Aviso = (() => {
-    if (step !== 1) return null
+  const avisoTurmas = (() => {
+    if (step !== 2) return null
     if (turmas.some((t) => !t.nome.trim())) return "Preencha o nome de todas as turmas para continuar."
     if (indicesNomeDuplicado(turmas).size > 0) return "Duas turmas não podem ter o mesmo nome — ajuste os nomes destacados abaixo."
     return null
@@ -171,7 +175,7 @@ export function OnboardingWizard({ onFinish }: OnboardingWizardProps) {
   }
 
   const goNext = () => {
-    if (step >= 5) return
+    if (step >= 6) return
     setLoading(true)
     setTimeout(() => {
       setStep((s) => s + 1)
@@ -182,6 +186,7 @@ export function OnboardingWizard({ onFinish }: OnboardingWizardProps) {
   const goBack = () => setStep((s) => Math.max(1, s - 1))
 
   const handleFinish = () => {
+    void updateNomeInstituicao(nomeInstituicao)
     turmas.forEach((t) => {
       addTurma({
         nome: t.nome.trim(),
@@ -190,6 +195,7 @@ export function OnboardingWizard({ onFinish }: OnboardingWizardProps) {
         cargaHoraria: t.cargaHoraria,
         cargaHorariaGeminada: {},
         diasFuncionamento: t.dias,
+        aulasFixas: [],
       })
     })
     saveProfessores(professores.filter((p) => p.nome.trim().length > 0))
@@ -267,7 +273,8 @@ export function OnboardingWizard({ onFinish }: OnboardingWizardProps) {
                 exit={{ opacity: 0, x: -16 }}
                 transition={{ duration: 0.3 }}
               >
-                {step === 1 && (
+                {step === 1 && <StepInstituicao nome={nomeInstituicao} onChange={setNomeInstituicao} />}
+                {step === 2 && (
                   <StepTurmas
                     turmas={turmas}
                     maxCount={maxCount}
@@ -278,7 +285,7 @@ export function OnboardingWizard({ onFinish }: OnboardingWizardProps) {
                     nomesDuplicados={indicesNomeDuplicado(turmas)}
                   />
                 )}
-                {step === 2 && (
+                {step === 3 && (
                   <StepMaterias
                     turmas={turmas}
                     disciplinas={disciplinas}
@@ -287,7 +294,7 @@ export function OnboardingWizard({ onFinish }: OnboardingWizardProps) {
                     onRemoveDisciplina={removeDisciplina}
                   />
                 )}
-                {step === 3 && (
+                {step === 4 && (
                   <StepProfessores
                     professores={professores}
                     disciplinas={disciplinas}
@@ -296,15 +303,15 @@ export function OnboardingWizard({ onFinish }: OnboardingWizardProps) {
                     onRemove={removeProfessor}
                   />
                 )}
-                {step === 4 && <StepDias turmas={turmas} onChangeTurma={updateTurma} />}
-                {step === 5 && <StepRevisao turmas={turmas} professores={professores} />}
+                {step === 5 && <StepDias turmas={turmas} onChangeTurma={updateTurma} />}
+                {step === 6 && <StepRevisao turmas={turmas} professores={professores} />}
               </motion.div>
             )}
           </AnimatePresence>
         </div>
 
-        {!loading && step1Aviso && (
-          <p className="mt-4 text-center text-xs font-medium text-amber-600 dark:text-amber-400">{step1Aviso}</p>
+        {!loading && avisoTurmas && (
+          <p className="mt-4 text-center text-xs font-medium text-amber-600 dark:text-amber-400">{avisoTurmas}</p>
         )}
 
         {!loading && (
@@ -318,7 +325,7 @@ export function OnboardingWizard({ onFinish }: OnboardingWizardProps) {
               Voltar
             </button>
 
-            {step < 5 ? (
+            {step < 6 ? (
               <button
                 type="button"
                 onClick={goNext}
@@ -339,6 +346,25 @@ export function OnboardingWizard({ onFinish }: OnboardingWizardProps) {
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+function StepInstituicao({ nome, onChange }: { nome: string; onChange: (v: string) => void }) {
+  return (
+    <div>
+      <h2 className="font-display text-2xl font-bold text-slate-900 dark:text-white">Qual o nome da sua instituição?</h2>
+      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+        Usamos isso só pra identificar sua escola dentro do {APP_NAME} — pode ajustar depois.
+      </p>
+      <label className="mt-6 block text-xs font-medium text-slate-500 dark:text-slate-400">Nome da instituição</label>
+      <input
+        value={nome}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder="Ex: Escola Municipal João de Barro"
+        autoFocus
+        className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-base text-slate-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+      />
     </div>
   )
 }
@@ -529,14 +555,14 @@ function StepMaterias({
   return (
     <div>
       <h2 className="font-display text-2xl font-bold text-slate-900 dark:text-white">
-        Quantas aulas por semana em cada matéria?
+        Quantas aulas por semana em cada disciplina?
       </h2>
       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-        Uma tabela só — preenche a carga horária de todas as turmas de uma vez. Não achou a matéria? Adicione abaixo.
+        Uma tabela só — preenche a carga horária de todas as turmas de uma vez. Não achou a disciplina? Adicione abaixo.
       </p>
 
       <div className="mt-6 overflow-x-auto rounded-xl border border-slate-200 dark:border-white/10">
-        <table className="w-full min-w-[640px] border-collapse text-left text-sm">
+        <table className="w-full min-w-160 border-collapse text-left text-sm">
           <thead>
             <tr className="bg-slate-50 dark:bg-white/5">
               <th className="border-b border-slate-200 px-3 py-2 font-semibold text-slate-500 dark:border-white/10 dark:text-slate-300">
@@ -623,7 +649,7 @@ function StepMaterias({
           onClick={handleAdd}
           className="flex shrink-0 items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-3 py-2 text-sm font-medium text-slate-600 transition-colors hover:border-brand-400 hover:text-brand-600 dark:border-slate-700 dark:text-slate-300"
         >
-          <Plus className="h-4 w-4" /> Adicionar matéria
+          <Plus className="h-4 w-4" /> Adicionar disciplina
         </button>
       </div>
     </div>
@@ -647,7 +673,7 @@ function StepProfessores({
     <div>
       <h2 className="font-display text-2xl font-bold text-slate-900 dark:text-white">Quem são os professores?</h2>
       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-        Digite o nome de cada professor e marque quais matérias ele(a) dá.
+        Digite o nome de cada professor e marque quais disciplinas ele(a) dá.
       </p>
 
       <div className="mt-6 space-y-3">
@@ -679,7 +705,7 @@ function StepProfessores({
                     onClick={() => {
                       const next = { ...p.turmasPorDisciplina }
                       if (active) delete next[d.id]
-                      else next[d.id] = []
+                      else next[d.id] = { turmaIds: [], tipo: "A" }
                       onChange(i, { ...p, turmasPorDisciplina: next })
                     }}
                     className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${

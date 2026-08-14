@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react"
+import { useState, type FormEvent } from "react"
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom"
 import { motion } from "framer-motion"
 import { Eye, EyeOff, Lock, Mail, ShieldCheck, User as UserIcon, Zap } from "lucide-react"
@@ -28,22 +28,6 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    const root = document.documentElement
-    const hadDark = root.classList.contains("dark")
-    root.classList.remove("dark")
-    // ThemeProvider (ancestor) re-applies "dark" in its own mount effect, which fires
-    // after this one — observer keeps this route forced light regardless of that order.
-    const observer = new MutationObserver(() => {
-      if (root.classList.contains("dark")) root.classList.remove("dark")
-    })
-    observer.observe(root, { attributes: true, attributeFilter: ["class"] })
-    return () => {
-      observer.disconnect()
-      if (hadDark) root.classList.add("dark")
-    }
-  }, [])
 
   if (authLoading) {
     return (

@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { BookOpen, ChevronDown, ChevronRight, Plus, Trash2 } from "lucide-react"
+import { BookOpen, CalendarOff, Check, ChevronRight, ListChecks, Plus, Trash2, X } from "lucide-react"
 import { useData } from "@/context/DataContext"
 import { DIAS_SEMANA, PERIODOS, type DiaSemana, type Periodo, type Professor } from "@/data/mockData"
 import { MateriasProfessorModal } from "@/components/dashboard/MateriasProfessorModal"
@@ -13,23 +13,27 @@ const TURNO_LABEL: Record<Periodo, string> = {
 
 export function ProfessoresManager() {
   const { professores, setProfessores, disciplinas, turmas, blocos } = useData()
-  const [novoNome, setNovoNome] = useState("")
-  const [expandidoId, setExpandidoId] = useState<string | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [modoSelecao, setModoSelecao] = useState(false)
+  const [selecionadas, setSelecionadas] = useState<Set<string>>(new Set())
+  const [confirmandoExclusao, setConfirmandoExclusao] = useState(false)
   const [turnoSelecionado, setTurnoSelecionado] = useState<Record<string, Periodo>>({})
   const [modalProfessorId, setModalProfessorId] = useState<string | null>(null)
 
-  const updateProfessor = (index: number, next: Professor) => {
-    setProfessores(professores.map((p, i) => (i === index ? next : p)))
+  const selecionado = professores.find((p) => p.id === selectedId) ?? null
+
+  const updateProfessor = (id: string, changes: Partial<Professor>) => {
+    setProfessores(professores.map((p) => (p.id === id ? { ...p, ...changes } : p)))
   }
 
   /** turnos em que o professor pode efetivamente dar aula — todos os configurados se alguma disciplina não tiver restrição de turma, senão o turno das turmas que aparecem em qualquer disciplina dele */
   const turnosDoProfessor = (p: Professor): Periodo[] => {
-    const listas = Object.values(p.turmasPorDisciplina)
-    const semRestricao = listas.length === 0 || listas.some((ids) => ids.length === 0)
+    const configs = Object.values(p.turmasPorDisciplina)
+    const semRestricao = configs.length === 0 || configs.some((c) => c.turmaIds.length === 0)
     if (semRestricao) {
       return PERIODOS.filter((turno) => blocos.some((b) => b.turno === turno && b.tipo === "aula"))
     }
-    const turmaIdsUnicos = new Set(listas.flat())
+    const turmaIdsUnicos = new Set(configs.flatMap((c) => c.turmaIds))
     const turnosDasTurmas = turmas.filter((t) => turmaIdsUnicos.has(t.id)).map((t) => t.turno)
     return PERIODOS.filter((turno) => turnosDasTurmas.includes(turno))
   }
@@ -37,130 +41,256 @@ export function ProfessoresManager() {
   const isIndisponivel = (p: Professor, dia: DiaSemana, horario: string) =>
     p.indisponibilidades.some((x) => x.dia === dia && x.horario === horario)
 
-  const toggleIndisponivel = (index: number, p: Professor, dia: DiaSemana, horario: string) => {
+  const toggleIndisponivel = (p: Professor, dia: DiaSemana, horario: string) => {
     const next = isIndisponivel(p, dia, horario)
       ? p.indisponibilidades.filter((x) => !(x.dia === dia && x.horario === horario))
       : [...p.indisponibilidades, { dia, horario }]
-    updateProfessor(index, { ...p, indisponibilidades: next })
+    updateProfessor(p.id, { indisponibilidades: next })
   }
 
-  const removeProfessor = (index: number) => {
-    setProfessores(professores.filter((_, i) => i !== index))
+  const handleNovo = () => {
+    const id = `p-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    setProfessores([...professores, { id, nome: `Professor ${professores.length + 1}`, turmasPorDisciplina: {}, indisponibilidades: [] }])
+    setSelectedId(id)
   }
 
-  const handleAdd = () => {
-    const nome = novoNome.trim()
-    if (!nome) return
-    setProfessores([...professores, { id: `p-${Date.now()}`, nome, turmasPorDisciplina: {}, indisponibilidades: [] }])
-    setNovoNome("")
+  const handleRemover = (id: string) => {
+    setProfessores(professores.filter((p) => p.id !== id))
+    if (selectedId === id) setSelectedId(null)
+  }
+
+  const sairDoModoSelecao = () => {
+    setModoSelecao(false)
+    setSelecionadas(new Set())
+    setConfirmandoExclusao(false)
+  }
+
+  const toggleSelecionada = (id: string) => {
+    setConfirmandoExclusao(false)
+    setSelecionadas((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const handleExcluirSelecionadas = () => {
+    if (!confirmandoExclusao) {
+      setConfirmandoExclusao(true)
+      return
+    }
+    setProfessores(professores.filter((p) => !selecionadas.has(p.id)))
+    if (selectedId && selecionadas.has(selectedId)) setSelectedId(null)
+    sairDoModoSelecao()
   }
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900">
-      <h2 className="font-display text-base font-semibold text-slate-800 dark:text-white">Professores</h2>
+      <div className="mb-1 flex items-center justify-between">
+        <h2 className="font-display text-base font-semibold text-slate-800 dark:text-white">Professores</h2>
+      </div>
       <p className="mb-4 text-xs text-slate-400">
-        Nome, matérias e (opcionalmente) turmas de cada um — usados pelo gerador para alocar as aulas.
+        Nome, disciplinas e (opcionalmente) turmas de cada um — usados pelo gerador para alocar as aulas.
       </p>
 
-      <div className="flex gap-2">
-        <input
-          value={novoNome}
-          onChange={(e) => setNovoNome(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault()
-              handleAdd()
-            }
-          }}
-          placeholder="Nome do novo professor"
-          className="w-full min-w-0 max-w-xs rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-        />
-        <button
-          type="button"
-          onClick={handleAdd}
-          className="flex shrink-0 items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
-        >
-          <Plus className="h-4 w-4" /> Adicionar
-        </button>
-      </div>
-
-      <div className="mt-5 space-y-3">
-        {professores.map((p, i) => (
-          <div key={p.id} className="rounded-xl border border-slate-200 p-4 dark:border-white/10">
-            <div className="flex items-center gap-2">
-              <input
-                value={p.nome}
-                onChange={(e) => updateProfessor(i, { ...p, nome: e.target.value })}
-                className="w-full min-w-0 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-500/20 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-              />
-              <button
-                type="button"
-                onClick={() => removeProfessor(i)}
-                aria-label="Remover professor"
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-500 dark:hover:bg-rose-950/40"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
-            </div>
+      <div className="grid gap-4 md:grid-cols-[280px_minmax(0,1fr)]">
+        {/* Lista */}
+        <div className={`rounded-xl border border-slate-200 dark:border-white/10 ${selecionado ? "hidden md:flex md:flex-col" : "flex flex-col"}`}>
+          <div className="flex items-center gap-2 border-b border-slate-100 p-2.5 dark:border-white/5">
             <button
               type="button"
-              onClick={() => setModalProfessorId(p.id)}
-              className="mt-3 flex w-full items-center justify-between gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:border-brand-300 hover:text-brand-600 dark:border-white/10 dark:text-slate-300"
+              onClick={handleNovo}
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-brand-600 px-2.5 py-2 text-xs font-semibold text-white transition-colors hover:bg-brand-700"
             >
-              <span className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4" />
-                Matérias e turmas
-              </span>
-              <span className="text-xs text-slate-400">
-                {Object.keys(p.turmasPorDisciplina).length === 0
-                  ? "nenhuma matéria"
-                  : `${Object.keys(p.turmasPorDisciplina).length} matéria${Object.keys(p.turmasPorDisciplina).length !== 1 ? "s" : ""}`}
-              </span>
+              <Plus className="h-3.5 w-3.5" /> Novo professor
             </button>
+            <button
+              type="button"
+              onClick={() => (modoSelecao ? sairDoModoSelecao() : setModoSelecao(true))}
+              aria-label={modoSelecao ? "Cancelar seleção" : "Selecionar vários"}
+              title={modoSelecao ? "Cancelar seleção" : "Selecionar vários"}
+              className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors ${
+                modoSelecao
+                  ? "bg-slate-200 text-slate-700 dark:bg-white/10 dark:text-white"
+                  : "text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5"
+              }`}
+            >
+              {modoSelecao ? <X className="h-4 w-4" /> : <ListChecks className="h-4 w-4" />}
+            </button>
+          </div>
 
-            <div className="mt-3 border-t border-slate-100 pt-3 dark:border-white/10">
+          {modoSelecao && (
+            <div className="border-b border-slate-100 p-2.5 dark:border-white/5">
               <button
                 type="button"
-                onClick={() => setExpandidoId(expandidoId === p.id ? null : p.id)}
-                className="flex w-full items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                onClick={handleExcluirSelecionadas}
+                disabled={selecionadas.size === 0}
+                className={`flex w-full items-center justify-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${
+                  confirmandoExclusao
+                    ? "bg-rose-600 text-white hover:bg-rose-700"
+                    : "bg-rose-50 text-rose-600 hover:bg-rose-100 dark:bg-rose-950/40 dark:text-rose-400"
+                }`}
               >
-                {expandidoId === p.id ? (
-                  <ChevronDown className="h-3.5 w-3.5" />
-                ) : (
-                  <ChevronRight className="h-3.5 w-3.5" />
-                )}
-                Indisponibilidade
-                {p.indisponibilidades.length > 0 && (
-                  <span className="normal-case font-normal text-slate-400">
-                    ({p.indisponibilidades.length} horário{p.indisponibilidades.length !== 1 ? "s" : ""})
-                  </span>
-                )}
+                <Trash2 className="h-3.5 w-3.5" />
+                {confirmandoExclusao ? `Confirmar exclusão (${selecionadas.size})` : `Excluir selecionados (${selecionadas.size})`}
+              </button>
+            </div>
+          )}
+
+          <div className="max-h-112 flex-1 overflow-y-auto p-1.5">
+            {professores.map((p) => {
+              const marcada = selecionadas.has(p.id)
+              return (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => (modoSelecao ? toggleSelecionada(p.id) : setSelectedId(p.id))}
+                  className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-sm transition-colors ${
+                    !modoSelecao && selectedId === p.id
+                      ? "bg-brand-600 font-medium text-white shadow-sm shadow-brand-600/30"
+                      : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-white/5"
+                  }`}
+                >
+                  {modoSelecao && (
+                    <span
+                      className={`flex h-4 w-4 shrink-0 items-center justify-center rounded border ${
+                        marcada ? "border-brand-600 bg-brand-600 text-white" : "border-slate-300 dark:border-slate-600"
+                      }`}
+                    >
+                      {marcada && <Check className="h-3 w-3" />}
+                    </span>
+                  )}
+                  <span className="flex-1 truncate">{p.nome || "Sem nome"}</span>
+                  {!modoSelecao && <ChevronRight className="h-3.5 w-3.5 shrink-0 opacity-40" />}
+                </button>
+              )
+            })}
+            {professores.length === 0 && (
+              <p className="px-2.5 py-6 text-center text-sm text-slate-400">Nenhum professor cadastrado ainda.</p>
+            )}
+          </div>
+
+          <p className="border-t border-slate-100 px-3 py-2 text-[11px] text-slate-400 dark:border-white/5">
+            {professores.length} {professores.length === 1 ? "professor cadastrado" : "professores cadastrados"}
+          </p>
+        </div>
+
+        {/* Detalhe */}
+        <div className={selecionado ? "" : "hidden items-center justify-center rounded-xl border border-dashed border-slate-200 py-16 dark:border-slate-700 md:flex"}>
+          {!selecionado && (
+            <p className="max-w-[16rem] text-center text-sm text-slate-400">
+              Selecione um professor à esquerda, ou clique em "Novo professor" pra cadastrar.
+            </p>
+          )}
+
+          {selecionado && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 md:hidden">
+                <button
+                  type="button"
+                  onClick={() => setSelectedId(null)}
+                  className="flex items-center gap-1 text-xs font-medium text-slate-500 dark:text-slate-400"
+                >
+                  <ChevronRight className="h-3.5 w-3.5 rotate-180" /> Voltar pra lista
+                </button>
+              </div>
+
+              <div className="flex items-center justify-between gap-2">
+                <input
+                  value={selecionado.nome}
+                  onChange={(e) => updateProfessor(selecionado.id, { nome: e.target.value })}
+                  placeholder="Nome do professor"
+                  className="w-full rounded-lg border border-transparent bg-transparent px-1 py-1 font-display text-lg font-semibold text-slate-900 outline-none focus:border-brand-500 focus:bg-white focus:ring-2 focus:ring-brand-500/20 dark:text-white dark:focus:bg-slate-950"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleRemover(selecionado.id)}
+                  aria-label="Excluir professor"
+                  title="Excluir professor"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-500 dark:hover:bg-rose-950/40"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setModalProfessorId(selecionado.id)}
+                className="flex w-full items-center justify-between gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-sm font-medium text-slate-600 transition-colors hover:border-brand-300 hover:text-brand-600 dark:border-white/10 dark:text-slate-300"
+              >
+                <span className="flex items-center gap-2">
+                  <BookOpen className="h-4 w-4" />
+                  Disciplinas e turmas
+                </span>
+                <span className="text-xs text-slate-400">
+                  {Object.keys(selecionado.turmasPorDisciplina).length === 0
+                    ? "nenhuma disciplina"
+                    : `${Object.keys(selecionado.turmasPorDisciplina).length} disciplina${Object.keys(selecionado.turmasPorDisciplina).length !== 1 ? "s" : ""}`}
+                </span>
               </button>
 
-              {expandidoId === p.id &&
-                (() => {
-                  const turnos = turnosDoProfessor(p)
+              <button
+                type="button"
+                onClick={() => updateProfessor(selecionado.id, { concentrarDias: !selecionado.concentrarDias })}
+                title="O gerador tenta encaixar as aulas desse professor nos dias em que ele já dá aula, pra sobrar algum dia livre. É só uma preferência — nunca bloqueia um dia à força."
+                className={`flex w-full items-center justify-between gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors ${
+                  selecionado.concentrarDias
+                    ? "border-brand-500 bg-brand-50 text-brand-700 dark:border-brand-800 dark:bg-brand-950 dark:text-brand-300"
+                    : "border-slate-200 text-slate-600 hover:border-brand-300 hover:text-brand-600 dark:border-white/10 dark:text-slate-300"
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <CalendarOff className="h-4 w-4" />
+                  Tentar concentrar aulas (liberar um dia)
+                </span>
+                <span
+                  className={`flex h-5 w-9 shrink-0 items-center rounded-full p-0.5 transition-colors ${
+                    selecionado.concentrarDias ? "bg-brand-600" : "bg-slate-300 dark:bg-slate-600"
+                  }`}
+                >
+                  <span
+                    className={`h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${
+                      selecionado.concentrarDias ? "translate-x-4" : "translate-x-0"
+                    }`}
+                  />
+                </span>
+              </button>
+
+              <div>
+                <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
+                  Indisponibilidade
+                  {selecionado.indisponibilidades.length > 0 && (
+                    <span className="font-normal text-slate-400">
+                      {" "}
+                      ({selecionado.indisponibilidades.length} horário{selecionado.indisponibilidades.length !== 1 ? "s" : ""})
+                    </span>
+                  )}
+                </span>
+
+                {(() => {
+                  const turnos = turnosDoProfessor(selecionado)
                   if (turnos.length === 0) {
                     return (
-                      <p className="mt-2 text-xs text-slate-400">
+                      <p className="mt-1.5 text-xs text-slate-400">
                         Cadastre horários de aula em Configurações pra poder marcar indisponibilidade.
                       </p>
                     )
                   }
-                  const turnoAtual = turnoSelecionado[p.id] ?? turnos[0]
+                  const turnoAtual = turnoSelecionado[selecionado.id] ?? turnos[0]
                   const horariosDoTurno = blocos
                     .filter((b) => b.turno === turnoAtual && b.tipo === "aula")
                     .sort((a, b) => a.inicio.localeCompare(b.inicio))
 
                   return (
-                    <div className="mt-2">
+                    <div className="mt-1.5">
                       {turnos.length > 1 && (
                         <div className="mb-2 flex flex-wrap gap-1.5">
                           {turnos.map((turno) => (
                             <button
                               key={turno}
                               type="button"
-                              onClick={() => setTurnoSelecionado((prev) => ({ ...prev, [p.id]: turno }))}
+                              onClick={() => setTurnoSelecionado((prev) => ({ ...prev, [selecionado.id]: turno }))}
                               className={`rounded-lg px-2.5 py-1 text-xs font-medium transition-colors ${
                                 turnoAtual === turno
                                   ? "bg-brand-600 text-white"
@@ -201,7 +331,7 @@ export function ProfessoresManager() {
                                     {bloco.inicio}
                                   </td>
                                   {DIAS_SEMANA.map((dia) => {
-                                    const bloqueado = isIndisponivel(p, dia, bloco.inicio)
+                                    const bloqueado = isIndisponivel(selecionado, dia, bloco.inicio)
                                     return (
                                       <td
                                         key={dia}
@@ -209,7 +339,7 @@ export function ProfessoresManager() {
                                       >
                                         <button
                                           type="button"
-                                          onClick={() => toggleIndisponivel(i, p, dia, bloco.inicio)}
+                                          onClick={() => toggleIndisponivel(selecionado, dia, bloco.inicio)}
                                           aria-label={`${bloqueado ? "Liberar" : "Marcar indisponível"} ${dia} ${bloco.inicio}`}
                                           className={`h-6 w-full rounded transition-colors ${
                                             bloqueado
@@ -229,14 +359,10 @@ export function ProfessoresManager() {
                     </div>
                   )
                 })()}
+              </div>
             </div>
-          </div>
-        ))}
-        {professores.length === 0 && (
-          <p className="rounded-xl border border-dashed border-slate-200 px-4 py-6 text-center text-sm text-slate-400 dark:border-slate-700">
-            Nenhum professor ainda — adicione o primeiro acima.
-          </p>
-        )}
+          )}
+        </div>
       </div>
 
       <MateriasProfessorModal
@@ -245,8 +371,7 @@ export function ProfessoresManager() {
         turmas={turmas}
         onClose={() => setModalProfessorId(null)}
         onChange={(next) => {
-          const index = professores.findIndex((p) => p.id === modalProfessorId)
-          if (index !== -1) updateProfessor(index, next)
+          if (modalProfessorId) updateProfessor(modalProfessorId, next)
         }}
       />
     </div>

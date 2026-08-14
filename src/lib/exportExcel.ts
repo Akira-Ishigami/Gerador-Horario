@@ -1,6 +1,7 @@
 import ExcelJS from "exceljs"
 import { DIAS_SEMANA, type BlocoHorario, type Disciplina, type Professor, type Turma } from "@/data/mockData"
 import type { GeneratedSchedule } from "@/lib/scheduleGenerator"
+import { celulasDoProfessor } from "@/lib/professorSchedule"
 
 const CABECALHO = ["Horário", ...DIAS_SEMANA]
 
@@ -56,29 +57,7 @@ function adicionarPlanilhaProfessor(
   disciplinas: Disciplina[],
 ) {
   const disciplinaMap = new Map(disciplinas.map((d) => [d.id, d.nome]))
-  // célula[`${dia}-${horaInicio}`] = o que o professor dá naquele horário real,
-  // juntando as turmas de turnos diferentes que ele der aula (mesma convenção
-  // turno-agnóstica de horário usada no resto do gerador)
-  const celulas = new Map<string, { turmaNome: string; disciplinaNome: string; fim: string }>()
-
-  for (const turma of turmas) {
-    const grade = schedule.grades[turma.id]
-    if (!grade) continue
-    const blocosDaTurma = blocos.filter((b) => b.turno === turma.turno)
-    grade.forEach((linha, diaIdx) => {
-      linha.forEach((assignment, blocoIdx) => {
-        if (!assignment || assignment.professorId !== professor.id) return
-        const bloco = blocosDaTurma[blocoIdx]
-        if (!bloco) return
-        const key = `${DIAS_SEMANA[diaIdx]}-${bloco.inicio}`
-        celulas.set(key, {
-          turmaNome: turma.nome,
-          disciplinaNome: disciplinaMap.get(assignment.disciplinaId) ?? assignment.disciplinaId,
-          fim: bloco.fim,
-        })
-      })
-    })
-  }
+  const celulas = celulasDoProfessor(professor, turmas, schedule, blocos)
 
   if (celulas.size === 0) return // professor sem nenhuma aula na grade gerada — não cria planilha vazia
 
@@ -93,7 +72,7 @@ function adicionarPlanilhaProfessor(
   for (const horario of horarios) {
     const valores = DIAS_SEMANA.map((dia) => {
       const cel = celulas.get(`${dia}-${horario}`)
-      return cel ? `${cel.turmaNome}: ${cel.disciplinaNome}` : ""
+      return cel ? `${cel.turmaNome}: ${disciplinaMap.get(cel.disciplinaId) ?? cel.disciplinaId}` : ""
     })
     const fim = DIAS_SEMANA.map((dia) => celulas.get(`${dia}-${horario}`)?.fim).find((f) => f)
     sheet.addRow([`${horario}–${fim ?? ""}`, ...valores])

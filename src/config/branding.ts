@@ -15,6 +15,15 @@ export const APP_DOMAIN = "montei.app" // placeholder, ajustar quando o domínio
  */
 export const MVP_SEM_LIMITES = true
 
+/**
+ * Modo de teste local: ignora o Supabase por completo — não busca nem grava
+ * nada no banco, e a tela abre já com turmas/professores/disciplinas de
+ * exemplo (ver `src/data/seedTeste.ts`) pra testar o sistema sem sujar dados
+ * reais. Editar/criar/excluir funciona normalmente, só que só na memória —
+ * some ao dar F5. Voltar `false` quando terminar os testes pra reconectar.
+ */
+export const MODO_TESTE_LOCAL = true
+
 export type PlanId = "teste" | "bronze" | "prata" | "ouro"
 
 export interface Plan {

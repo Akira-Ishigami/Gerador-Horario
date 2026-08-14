@@ -1,14 +1,34 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
-import { BLOCOS_HORARIOS_PADRAO, PERIODOS, type BlocoHorario, type Disciplina, type Professor, type Turma } from "@/data/mockData"
+import {
+  BLOCOS_HORARIOS_PADRAO,
+  PERIODOS,
+  gerarCodigoSecreto,
+  type BlocoHorario,
+  type Disciplina,
+  type GrupoCoincidencia,
+  type GrupoDisciplinas,
+  type Professor,
+  type Recurso,
+  type Turma,
+} from "@/data/mockData"
+import {
+  SEED_BLOCOS,
+  SEED_DISCIPLINAS,
+  SEED_GRUPOS_COINCIDENCIA,
+  SEED_GRUPOS_DISCIPLINAS,
+  SEED_PROFESSORES,
+  SEED_RECURSOS,
+  SEED_TURMAS,
+} from "@/data/seedTeste"
 import { useAuth } from "@/context/AuthContext"
-import { getPlan, MVP_SEM_LIMITES } from "@/config/branding"
+import { getPlan, MODO_TESTE_LOCAL, MVP_SEM_LIMITES } from "@/config/branding"
 import { supabase } from "@/lib/supabaseClient"
 
 interface DataContextValue {
   /** true enquanto turmas/professores/disciplinas/blocos ainda estão sendo buscados do Supabase */
   loading: boolean
   turmas: Turma[]
-  addTurma: (turma: Omit<Turma, "id">) => { ok: true } | { ok: false; error: string }
+  addTurma: (turma: Omit<Turma, "id">) => { ok: true; id: string } | { ok: false; error: string }
   removeTurma: (id: string) => void
   updateTurma: (turmaId: string, changes: Partial<Omit<Turma, "id">>) => void
   updateCargaHoraria: (turmaId: string, disciplinaId: string, quantidade: number) => void
@@ -21,6 +41,12 @@ interface DataContextValue {
   setDisciplinas: (disciplinas: Disciplina[]) => void
   blocos: BlocoHorario[]
   setBlocos: (blocos: BlocoHorario[]) => void
+  recursos: Recurso[]
+  setRecursos: (recursos: Recurso[]) => void
+  gruposCoincidencia: GrupoCoincidencia[]
+  setGruposCoincidencia: (grupos: GrupoCoincidencia[]) => void
+  gruposDisciplinas: GrupoDisciplinas[]
+  setGruposDisciplinas: (grupos: GrupoDisciplinas[]) => void
 }
 
 const DataContext = createContext<DataContextValue | null>(null)
@@ -33,9 +59,16 @@ function turmaFromRow(row: any): Turma {
     nome: row.nome,
     turno: row.turno,
     sala: row.sala ?? undefined,
+    aulasSemanais: row.aulas_semanais ?? undefined,
+    minAulasPorDia: row.min_aulas_dia ?? undefined,
+    maxAulasPorDia: row.max_aulas_dia ?? undefined,
+    recreioDepoisDaAula: row.recreio_depois_da_aula ?? undefined,
+    recreioDuracaoMin: row.recreio_duracao_min ?? undefined,
+    codigoSecreto: row.codigo_secreto ?? undefined,
     cargaHoraria: row.carga_horaria ?? {},
     cargaHorariaGeminada: row.carga_horaria_geminada ?? {},
     diasFuncionamento: row.dias_funcionamento ?? [],
+    aulasFixas: row.aulas_fixas ?? [],
   }
 }
 function turmaToRow(t: Turma, userId: string) {
@@ -45,18 +78,48 @@ function turmaToRow(t: Turma, userId: string) {
     nome: t.nome,
     turno: t.turno,
     sala: t.sala ?? null,
+    aulas_semanais: t.aulasSemanais ?? null,
+    min_aulas_dia: t.minAulasPorDia ?? null,
+    max_aulas_dia: t.maxAulasPorDia ?? null,
+    recreio_depois_da_aula: t.recreioDepoisDaAula ?? null,
+    recreio_duracao_min: t.recreioDuracaoMin ?? null,
+    codigo_secreto: t.codigoSecreto ?? null,
     carga_horaria: t.cargaHoraria,
     carga_horaria_geminada: t.cargaHorariaGeminada,
     dias_funcionamento: t.diasFuncionamento,
+    aulas_fixas: t.aulasFixas,
   }
+}
+
+// turmas_por_disciplina já existia (migration 0010) guardando só array de
+// turmaIds por disciplina; agora cada entrada também carrega um `tipo`. Como
+// é jsonb, não tem migration de coluna — só precisa converter na leitura pra
+// não perder a restrição de turma que contas já tinham salvo no formato
+// antigo (array puro em vez de {turmaIds, tipo}).
+function turmasPorDisciplinaFromRow(raw: any): Professor["turmasPorDisciplina"] {
+  const resultado: Professor["turmasPorDisciplina"] = {}
+  for (const [disciplinaId, valor] of Object.entries(raw ?? {})) {
+    if (Array.isArray(valor)) {
+      resultado[disciplinaId] = { turmaIds: valor as string[], tipo: "A" }
+    } else if (valor && typeof valor === "object") {
+      const v = valor as { turmaIds?: string[]; tipo?: string; tipoPorTurma?: Record<string, string> }
+      resultado[disciplinaId] = {
+        turmaIds: v.turmaIds ?? [],
+        tipo: (v.tipo as Professor["turmasPorDisciplina"][string]["tipo"]) ?? "A",
+        tipoPorTurma: v.tipoPorTurma as Professor["turmasPorDisciplina"][string]["tipoPorTurma"],
+      }
+    }
+  }
+  return resultado
 }
 
 function professorFromRow(row: any): Professor {
   return {
     id: row.id,
     nome: row.nome,
-    turmasPorDisciplina: row.turmas_por_disciplina ?? {},
+    turmasPorDisciplina: turmasPorDisciplinaFromRow(row.turmas_por_disciplina),
     indisponibilidades: row.indisponibilidades ?? [],
+    concentrarDias: row.concentrar_dias ?? false,
   }
 }
 function professorToRow(p: Professor, userId: string) {
@@ -66,14 +129,30 @@ function professorToRow(p: Professor, userId: string) {
     nome: p.nome,
     turmas_por_disciplina: p.turmasPorDisciplina,
     indisponibilidades: p.indisponibilidades,
+    concentrar_dias: p.concentrarDias ?? false,
   }
 }
 
 function disciplinaFromRow(row: any): Disciplina {
-  return { id: row.id, nome: row.nome, cor: row.cor }
+  return {
+    id: row.id,
+    nome: row.nome,
+    cor: row.cor,
+    nomeAbreviado: row.nome_abreviado ?? undefined,
+    tipo: row.tipo ?? undefined,
+    horariosPermitidos: row.horarios_permitidos ?? undefined,
+  }
 }
 function disciplinaToRow(d: Disciplina, userId: string) {
-  return { id: d.id, user_id: userId, nome: d.nome, cor: d.cor }
+  return {
+    id: d.id,
+    user_id: userId,
+    nome: d.nome,
+    cor: d.cor,
+    nome_abreviado: d.nomeAbreviado ?? null,
+    tipo: d.tipo ?? null,
+    horarios_permitidos: d.horariosPermitidos ?? [],
+  }
 }
 
 function blocoFromRow(row: any): BlocoHorario {
@@ -81,6 +160,27 @@ function blocoFromRow(row: any): BlocoHorario {
 }
 function blocoToRow(b: BlocoHorario, userId: string) {
   return { id: b.id, user_id: userId, inicio: b.inicio, fim: b.fim, tipo: b.tipo, turno: b.turno }
+}
+
+function recursoFromRow(row: any): Recurso {
+  return { id: row.id, nome: row.nome, quantidade: row.quantidade, disciplinaIds: row.disciplina_ids ?? [] }
+}
+function recursoToRow(r: Recurso, userId: string) {
+  return { id: r.id, user_id: userId, nome: r.nome, quantidade: r.quantidade, disciplina_ids: r.disciplinaIds }
+}
+
+function grupoCoincidenciaFromRow(row: any): GrupoCoincidencia {
+  return { id: row.id, nome: row.nome, disciplinaId: row.disciplina_id, turmaIds: row.turma_ids ?? [] }
+}
+function grupoCoincidenciaToRow(g: GrupoCoincidencia, userId: string) {
+  return { id: g.id, user_id: userId, nome: g.nome, disciplina_id: g.disciplinaId, turma_ids: g.turmaIds }
+}
+
+function grupoDisciplinasFromRow(row: any): GrupoDisciplinas {
+  return { id: row.id, nome: row.nome, disciplinaIds: row.disciplina_ids ?? [], maxPorDia: row.max_por_dia }
+}
+function grupoDisciplinasToRow(g: GrupoDisciplinas, userId: string) {
+  return { id: g.id, user_id: userId, nome: g.nome, disciplina_ids: g.disciplinaIds, max_por_dia: g.maxPorDia }
 }
 
 /**
@@ -114,13 +214,31 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [professores, setProfessoresState] = useState<Professor[]>([])
   const [disciplinas, setDisciplinasState] = useState<Disciplina[]>([])
   const [blocos, setBlocosState] = useState<BlocoHorario[]>([])
+  const [recursos, setRecursosState] = useState<Recurso[]>([])
+  const [gruposCoincidencia, setGruposCoincidenciaState] = useState<GrupoCoincidencia[]>([])
+  const [gruposDisciplinas, setGruposDisciplinasState] = useState<GrupoDisciplinas[]>([])
 
   useEffect(() => {
+    if (MODO_TESTE_LOCAL) {
+      setTurmas(SEED_TURMAS)
+      setProfessoresState(SEED_PROFESSORES)
+      setDisciplinasState(SEED_DISCIPLINAS)
+      setBlocosState(SEED_BLOCOS)
+      setRecursosState(SEED_RECURSOS)
+      setGruposCoincidenciaState(SEED_GRUPOS_COINCIDENCIA)
+      setGruposDisciplinasState(SEED_GRUPOS_DISCIPLINAS)
+      setLoading(false)
+      return
+    }
+
     if (!user) {
       setTurmas([])
       setProfessoresState([])
       setDisciplinasState([])
       setBlocosState([])
+      setRecursosState([])
+      setGruposCoincidenciaState([])
+      setGruposDisciplinasState([])
       setLoading(false)
       return
     }
@@ -129,17 +247,23 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setLoading(true)
 
     ;(async () => {
-      const [turmasRes, professoresRes, disciplinasRes, blocosRes] = await Promise.all([
+      const [turmasRes, professoresRes, disciplinasRes, blocosRes, recursosRes, gruposRes, gruposDisciplinasRes] = await Promise.all([
         supabase.from("turmas").select("*").eq("user_id", user.id),
         supabase.from("professores").select("*").eq("user_id", user.id),
         supabase.from("disciplinas").select("*").eq("user_id", user.id),
         supabase.from("blocos_horarios").select("*").eq("user_id", user.id),
+        supabase.from("recursos").select("*").eq("user_id", user.id),
+        supabase.from("grupos_coincidencia").select("*").eq("user_id", user.id),
+        supabase.from("grupos_disciplinas").select("*").eq("user_id", user.id),
       ])
       if (cancelado) return
 
       setTurmas((turmasRes.data ?? []).map(turmaFromRow))
       setProfessoresState((professoresRes.data ?? []).map(professorFromRow))
       setDisciplinasState((disciplinasRes.data ?? []).map(disciplinaFromRow))
+      setRecursosState((recursosRes.data ?? []).map(recursoFromRow))
+      setGruposCoincidenciaState((gruposRes.data ?? []).map(grupoCoincidenciaFromRow))
+      setGruposDisciplinasState((gruposDisciplinasRes.data ?? []).map(grupoDisciplinasFromRow))
 
       const blocosCarregados = (blocosRes.data ?? []).map(blocoFromRow)
       const turnosExistentes = new Set(blocosCarregados.map((b) => b.turno))
@@ -184,29 +308,35 @@ export function DataProvider({ children }: { children: ReactNode }) {
         error: `Seu plano permite no máximo ${maxTurmas} turmas. Faça upgrade para adicionar mais.`,
       }
     }
-    if (!user) return { ok: false, error: "Você precisa estar logado." }
+    if (!user && !MODO_TESTE_LOCAL) return { ok: false, error: "Você precisa estar logado." }
 
     // Math.random() além do timestamp: addTurma roda várias vezes seguidas
     // (num forEach síncrono) quando o wizard de onboarding cria várias turmas
     // de uma vez — só o timestamp colidia e causava ids duplicados (a 2ª
     // turma em diante falhava ao inserir, violação de chave primária).
-    const nova: Turma = { ...turma, id: `t-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` }
+    const nova: Turma = {
+      ...turma,
+      id: `t-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      codigoSecreto: turma.codigoSecreto ?? gerarCodigoSecreto(),
+    }
     setTurmas((prev) => [...prev, nova])
     // .insert(...) só dispara a requisição de verdade quando "then"-ado ou
     // aguardado — o client do Supabase é lazy (thenable), então um `void`
     // sozinho na frente não bastava e a chamada nunca ia pra rede.
-    supabase
-      .from("turmas")
-      .insert(turmaToRow(nova, user.id))
-      .then(({ error }) => {
-        if (error) console.error("Erro ao salvar turma:", error)
-      })
-    return { ok: true }
+    if (!MODO_TESTE_LOCAL && user) {
+      supabase
+        .from("turmas")
+        .insert(turmaToRow(nova, user.id))
+        .then(({ error }) => {
+          if (error) console.error("Erro ao salvar turma:", error)
+        })
+    }
+    return { ok: true, id: nova.id }
   }
 
   const removeTurma = (id: string) => {
     setTurmas((prev) => prev.filter((t) => t.id !== id))
-    if (!user) return
+    if (!user || MODO_TESTE_LOCAL) return
     supabase
       .from("turmas")
       .delete()
@@ -229,7 +359,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         return atualizado
       }),
     )
-    if (!user || !atualizado) return
+    if (!user || !atualizado || MODO_TESTE_LOCAL) return
     supabase
       .from("turmas")
       .update(turmaToRow(atualizado, user.id))
@@ -255,7 +385,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         return { ...t, cargaHoraria: novaCarga }
       }),
     )
-    if (!user || !novaCarga) return
+    if (!user || !novaCarga || MODO_TESTE_LOCAL) return
     supabase
       .from("turmas")
       .update({ carga_horaria: novaCarga })
@@ -277,7 +407,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         return { ...t, cargaHorariaGeminada: novaGeminada }
       }),
     )
-    if (!user || !novaGeminada) return
+    if (!user || !novaGeminada || MODO_TESTE_LOCAL) return
     supabase
       .from("turmas")
       .update({ carga_horaria_geminada: novaGeminada })
@@ -291,19 +421,37 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const setProfessores = (next: Professor[]) => {
     const prev = professores
     setProfessoresState(next)
-    if (user) void syncTable("professores", user.id, prev, next, professorToRow)
+    if (user && !MODO_TESTE_LOCAL) void syncTable("professores", user.id, prev, next, professorToRow)
   }
 
   const setDisciplinas = (next: Disciplina[]) => {
     const prev = disciplinas
     setDisciplinasState(next)
-    if (user) void syncTable("disciplinas", user.id, prev, next, disciplinaToRow)
+    if (user && !MODO_TESTE_LOCAL) void syncTable("disciplinas", user.id, prev, next, disciplinaToRow)
   }
 
   const setBlocos = (next: BlocoHorario[]) => {
     const prev = blocos
     setBlocosState(next)
-    if (user) void syncTable("blocos_horarios", user.id, prev, next, blocoToRow)
+    if (user && !MODO_TESTE_LOCAL) void syncTable("blocos_horarios", user.id, prev, next, blocoToRow)
+  }
+
+  const setRecursos = (next: Recurso[]) => {
+    const prev = recursos
+    setRecursosState(next)
+    if (user && !MODO_TESTE_LOCAL) void syncTable("recursos", user.id, prev, next, recursoToRow)
+  }
+
+  const setGruposCoincidencia = (next: GrupoCoincidencia[]) => {
+    const prev = gruposCoincidencia
+    setGruposCoincidenciaState(next)
+    if (user && !MODO_TESTE_LOCAL) void syncTable("grupos_coincidencia", user.id, prev, next, grupoCoincidenciaToRow)
+  }
+
+  const setGruposDisciplinas = (next: GrupoDisciplinas[]) => {
+    const prev = gruposDisciplinas
+    setGruposDisciplinasState(next)
+    if (user && !MODO_TESTE_LOCAL) void syncTable("grupos_disciplinas", user.id, prev, next, grupoDisciplinasToRow)
   }
 
   const value = useMemo(
@@ -323,8 +471,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setDisciplinas,
       blocos,
       setBlocos,
+      recursos,
+      setRecursos,
+      gruposCoincidencia,
+      setGruposCoincidencia,
+      gruposDisciplinas,
+      setGruposDisciplinas,
     }),
-    [loading, turmas, limiteAtingido, maxTurmas, professores, disciplinas, blocos],
+    [loading, turmas, limiteAtingido, maxTurmas, professores, disciplinas, blocos, recursos, gruposCoincidencia, gruposDisciplinas],
   )
 
   return <DataContext.Provider value={value}>{children}</DataContext.Provider>

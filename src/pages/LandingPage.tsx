@@ -337,22 +337,6 @@ export default function LandingPage() {
     return () => clearTimeout(timer)
   }, [location.hash])
 
-  useEffect(() => {
-    const root = document.documentElement
-    const hadDark = root.classList.contains("dark")
-    root.classList.remove("dark")
-    // ThemeProvider (ancestor) re-applies "dark" in its own mount effect, which fires
-    // after this one — observer keeps this route forced light regardless of that order.
-    const observer = new MutationObserver(() => {
-      if (root.classList.contains("dark")) root.classList.remove("dark")
-    })
-    observer.observe(root, { attributes: true, attributeFilter: ["class"] })
-    return () => {
-      observer.disconnect()
-      if (hadDark) root.classList.add("dark")
-    }
-  }, [])
-
   return (
     <div className="min-h-screen bg-stone-50 font-landing-sans text-stone-600">
       <Navbar />

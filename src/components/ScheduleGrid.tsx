@@ -2,7 +2,6 @@ import { useState } from "react"
 import { GripVertical } from "lucide-react"
 import { DIAS_SEMANA, type BlocoHorario } from "@/data/mockData"
 import type { Grade } from "@/lib/scheduleGenerator"
-import { useTheme } from "@/context/ThemeContext"
 import { useData } from "@/context/DataContext"
 
 interface ScheduleGridProps {
@@ -13,12 +12,10 @@ interface ScheduleGridProps {
 }
 
 export function ScheduleGrid({ grade, blocos, compact = false, onMove }: ScheduleGridProps) {
-  const { theme } = useTheme()
   const { professores, disciplinas } = useData()
   const disciplinaMap = new Map(disciplinas.map((d) => [d.id, d]))
   const professorMap = new Map(professores.map((p) => [p.id, p]))
-  // no escuro a cor de fundo precisa de mais opacidade pra não sumir contra o card escuro
-  const chipAlpha = theme === "dark" ? "40" : "1a"
+  const chipAlpha = "1a"
 
   const [dragFrom, setDragFrom] = useState<{ dia: number; bloco: number } | null>(null)
   const [dragOver, setDragOver] = useState<{ dia: number; bloco: number } | null>(null)

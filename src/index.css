@@ -1,8 +1,10 @@
 @import "tailwindcss";
 
-/* Tailwind v4 usa prefers-color-scheme por padrão — isso força o "dark:" a
-   responder só à classe .dark no <html> (o que o ThemeToggle controla),
-   ignorando o tema do sistema operacional. */
+/* Tailwind v4 usa prefers-color-scheme por padrão — isso restringe o "dark:"
+   a só responder à classe .dark no <html>. Nada no app adiciona essa classe
+   (o modo escuro foi removido de propósito), então as classes dark: abaixo
+   ficam inertes — sem isso, o tema do sistema operacional reativaria o
+   escuro sozinho. */
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {

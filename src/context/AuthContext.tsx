@@ -11,6 +11,8 @@ export interface AppUser {
   role: Role
   plan: PlanId
   avatarColor: string
+  /** nome da instituição/escola, perguntado no início do wizard de configuração — vazio até ser preenchido */
+  nomeInstituicao: string
 }
 
 interface AuthContextValue {
@@ -24,6 +26,7 @@ interface AuthContextValue {
     password: string,
   ) => Promise<{ ok: true; needsEmailConfirmation: boolean } | { ok: false; error: string }>
   logout: () => Promise<void>
+  updateNomeInstituicao: (nome: string) => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -33,14 +36,15 @@ interface ProfileRow {
   role: Role
   plan: PlanId
   avatar_color: string
+  nome_instituicao: string | null
 }
 
 async function fetchProfile(id: string, email: string): Promise<AppUser | null> {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select("name, role, plan, avatar_color")
-    .eq("id", id)
-    .single<ProfileRow>()
+  // select("*") de propósito (não uma lista explícita de colunas): assim
+  // continua funcionando mesmo se `nome_instituicao` (migrations/0015) ainda
+  // não tiver rodado no banco — só vem undefined em vez de quebrar a query
+  // inteira, igual o padrão já usado pras linhas de turmas/professores.
+  const { data, error } = await supabase.from("profiles").select("*").eq("id", id).single<ProfileRow>()
 
   if (error || !data) {
     // Perfil ainda não existe (trigger de signup pode levar um instante) ou a
@@ -55,6 +59,7 @@ async function fetchProfile(id: string, email: string): Promise<AppUser | null> 
     role: data.role,
     plan: data.plan,
     avatarColor: data.avatar_color,
+    nomeInstituicao: data.nome_instituicao ?? "",
   }
 }
 
@@ -127,7 +132,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }
 
-  return <AuthContext.Provider value={{ user, loading, login, signup, logout }}>{children}</AuthContext.Provider>
+  const updateNomeInstituicao: AuthContextValue["updateNomeInstituicao"] = async (nome) => {
+    if (!user) return
+    const trimmed = nome.trim()
+    setUser((prev) => (prev ? { ...prev, nomeInstituicao: trimmed } : prev))
+    const { error } = await supabase.from("profiles").update({ nome_instituicao: trimmed }).eq("id", user.id)
+    if (error) console.error("Erro ao salvar nome da instituição:", error)
+  }
+
+  return (
+    <AuthContext.Provider value={{ user, loading, login, signup, logout, updateNomeInstituicao }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
 export function useAuth() {
