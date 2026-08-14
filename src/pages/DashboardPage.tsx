@@ -43,7 +43,6 @@ import { RecursosManager } from "@/components/dashboard/RecursosManager"
 import { RelatoriosManager } from "@/components/dashboard/RelatoriosManager"
 import { SavedSchedulesModal, formatarDataSlot, type SlotHorario } from "@/components/dashboard/SavedSchedulesModal"
 import { MenuDropdown } from "@/components/dashboard/MenuDropdown"
-import { MOCK_USERS } from "@/data/mockData"
 import { gerarHorarios, type GeneratedSchedule } from "@/lib/scheduleGenerator"
 import { APP_NAME, MVP_SEM_LIMITES } from "@/config/branding"
 import { useSEO } from "@/hooks/useSEO"
@@ -1052,46 +1051,17 @@ function AdminPanel() {
   const { professores } = useData()
 
   return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900">
-        <h2 className="font-display text-base font-semibold text-slate-800 dark:text-white">Professores</h2>
-        <p className="mb-4 text-xs text-slate-400">Editáveis na aba "Professores" — usados pelo gerador para alocar as aulas.</p>
-        <ul className="divide-y divide-slate-100 dark:divide-white/5">
-          {professores.map((p) => (
-            <li key={p.id} className="flex items-center justify-between rounded-lg px-2 py-2.5 text-sm transition-colors hover:bg-slate-50 dark:hover:bg-white/5">
-              <span className="font-medium text-slate-700 dark:text-slate-200">{p.nome}</span>
-              <span className="text-xs text-slate-400">{Object.keys(p.turmasPorDisciplina).join(", ")}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900">
-        <h2 className="font-display text-base font-semibold text-slate-800 dark:text-white">Usuários</h2>
-        <p className="mb-4 text-xs text-slate-400">Contas com acesso ao sistema (via banco de dados real).</p>
-        <ul className="divide-y divide-slate-100 dark:divide-white/5">
-          {MOCK_USERS.map((u) => (
-            <li key={u.id} className="flex items-center justify-between rounded-lg px-2 py-2.5 text-sm transition-colors hover:bg-slate-50 dark:hover:bg-white/5">
-              <div>
-                <p className="font-medium text-slate-700 dark:text-slate-200">{u.name}</p>
-                <p className="text-xs text-slate-400">{u.email}</p>
-              </div>
-              <span
-                className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase ${
-                  u.role === "admin"
-                    ? "bg-brand-100 text-brand-700 dark:bg-brand-950 dark:text-brand-300"
-                    : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
-                }`}
-              >
-                {u.role}
-              </span>
-            </li>
-          ))}
-          {MOCK_USERS.length === 0 && (
-            <li className="px-2 py-4 text-sm text-slate-400">Nenhuma conta cadastrada ainda.</li>
-          )}
-        </ul>
-      </div>
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900">
+      <h2 className="font-display text-base font-semibold text-slate-800 dark:text-white">Professores</h2>
+      <p className="mb-4 text-xs text-slate-400">Editáveis na aba "Professores" — usados pelo gerador para alocar as aulas.</p>
+      <ul className="divide-y divide-slate-100 dark:divide-white/5">
+        {professores.map((p) => (
+          <li key={p.id} className="flex items-center justify-between rounded-lg px-2 py-2.5 text-sm transition-colors hover:bg-slate-50 dark:hover:bg-white/5">
+            <span className="font-medium text-slate-700 dark:text-slate-200">{p.nome}</span>
+            <span className="text-xs text-slate-400">{Object.keys(p.turmasPorDisciplina).join(", ")}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   )
 }

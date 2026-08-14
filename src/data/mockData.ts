@@ -1,25 +1,3 @@
-import type { PlanId } from "@/config/branding"
-
-export type Role = "admin" | "user"
-
-export interface MockUser {
-  id: string
-  name: string
-  email: string
-  password: string
-  role: Role
-  plan: PlanId
-  avatarColor: string
-}
-
-/**
- * Sem backend ainda — login confere email/senha contra esta lista + as
- * contas criadas via cadastro (guardadas em localStorage, ver AuthContext).
- * Nenhuma conta fixa de demonstração aqui de propósito — troque por uma
- * consulta real ao banco quando o backend entrar.
- */
-export const MOCK_USERS: MockUser[] = []
-
 export interface Disciplina {
   id: string
   nome: string

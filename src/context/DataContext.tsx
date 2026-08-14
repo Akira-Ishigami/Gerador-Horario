@@ -11,17 +11,8 @@ import {
   type Recurso,
   type Turma,
 } from "@/data/mockData"
-import {
-  SEED_BLOCOS,
-  SEED_DISCIPLINAS,
-  SEED_GRUPOS_COINCIDENCIA,
-  SEED_GRUPOS_DISCIPLINAS,
-  SEED_PROFESSORES,
-  SEED_RECURSOS,
-  SEED_TURMAS,
-} from "@/data/seedTeste"
 import { useAuth } from "@/context/AuthContext"
-import { getPlan, MODO_TESTE_LOCAL, MVP_SEM_LIMITES } from "@/config/branding"
+import { getPlan, MVP_SEM_LIMITES } from "@/config/branding"
 import { supabase } from "@/lib/supabaseClient"
 
 interface DataContextValue {
@@ -219,18 +210,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [gruposDisciplinas, setGruposDisciplinasState] = useState<GrupoDisciplinas[]>([])
 
   useEffect(() => {
-    if (MODO_TESTE_LOCAL) {
-      setTurmas(SEED_TURMAS)
-      setProfessoresState(SEED_PROFESSORES)
-      setDisciplinasState(SEED_DISCIPLINAS)
-      setBlocosState(SEED_BLOCOS)
-      setRecursosState(SEED_RECURSOS)
-      setGruposCoincidenciaState(SEED_GRUPOS_COINCIDENCIA)
-      setGruposDisciplinasState(SEED_GRUPOS_DISCIPLINAS)
-      setLoading(false)
-      return
-    }
-
     if (!user) {
       setTurmas([])
       setProfessoresState([])
@@ -308,7 +287,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         error: `Seu plano permite no máximo ${maxTurmas} turmas. Faça upgrade para adicionar mais.`,
       }
     }
-    if (!user && !MODO_TESTE_LOCAL) return { ok: false, error: "Você precisa estar logado." }
+    if (!user) return { ok: false, error: "Você precisa estar logado." }
 
     // Math.random() além do timestamp: addTurma roda várias vezes seguidas
     // (num forEach síncrono) quando o wizard de onboarding cria várias turmas
@@ -323,20 +302,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
     // .insert(...) só dispara a requisição de verdade quando "then"-ado ou
     // aguardado — o client do Supabase é lazy (thenable), então um `void`
     // sozinho na frente não bastava e a chamada nunca ia pra rede.
-    if (!MODO_TESTE_LOCAL && user) {
-      supabase
-        .from("turmas")
-        .insert(turmaToRow(nova, user.id))
-        .then(({ error }) => {
-          if (error) console.error("Erro ao salvar turma:", error)
-        })
-    }
+    supabase
+      .from("turmas")
+      .insert(turmaToRow(nova, user.id))
+      .then(({ error }) => {
+        if (error) console.error("Erro ao salvar turma:", error)
+      })
     return { ok: true, id: nova.id }
   }
 
   const removeTurma = (id: string) => {
     setTurmas((prev) => prev.filter((t) => t.id !== id))
-    if (!user || MODO_TESTE_LOCAL) return
+    if (!user) return
     supabase
       .from("turmas")
       .delete()
@@ -359,7 +336,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         return atualizado
       }),
     )
-    if (!user || !atualizado || MODO_TESTE_LOCAL) return
+    if (!user || !atualizado) return
     supabase
       .from("turmas")
       .update(turmaToRow(atualizado, user.id))
@@ -385,7 +362,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         return { ...t, cargaHoraria: novaCarga }
       }),
     )
-    if (!user || !novaCarga || MODO_TESTE_LOCAL) return
+    if (!user || !novaCarga) return
     supabase
       .from("turmas")
       .update({ carga_horaria: novaCarga })
@@ -407,7 +384,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         return { ...t, cargaHorariaGeminada: novaGeminada }
       }),
     )
-    if (!user || !novaGeminada || MODO_TESTE_LOCAL) return
+    if (!user || !novaGeminada) return
     supabase
       .from("turmas")
       .update({ carga_horaria_geminada: novaGeminada })
@@ -421,37 +398,37 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const setProfessores = (next: Professor[]) => {
     const prev = professores
     setProfessoresState(next)
-    if (user && !MODO_TESTE_LOCAL) void syncTable("professores", user.id, prev, next, professorToRow)
+    if (user) void syncTable("professores", user.id, prev, next, professorToRow)
   }
 
   const setDisciplinas = (next: Disciplina[]) => {
     const prev = disciplinas
     setDisciplinasState(next)
-    if (user && !MODO_TESTE_LOCAL) void syncTable("disciplinas", user.id, prev, next, disciplinaToRow)
+    if (user) void syncTable("disciplinas", user.id, prev, next, disciplinaToRow)
   }
 
   const setBlocos = (next: BlocoHorario[]) => {
     const prev = blocos
     setBlocosState(next)
-    if (user && !MODO_TESTE_LOCAL) void syncTable("blocos_horarios", user.id, prev, next, blocoToRow)
+    if (user) void syncTable("blocos_horarios", user.id, prev, next, blocoToRow)
   }
 
   const setRecursos = (next: Recurso[]) => {
     const prev = recursos
     setRecursosState(next)
-    if (user && !MODO_TESTE_LOCAL) void syncTable("recursos", user.id, prev, next, recursoToRow)
+    if (user) void syncTable("recursos", user.id, prev, next, recursoToRow)
   }
 
   const setGruposCoincidencia = (next: GrupoCoincidencia[]) => {
     const prev = gruposCoincidencia
     setGruposCoincidenciaState(next)
-    if (user && !MODO_TESTE_LOCAL) void syncTable("grupos_coincidencia", user.id, prev, next, grupoCoincidenciaToRow)
+    if (user) void syncTable("grupos_coincidencia", user.id, prev, next, grupoCoincidenciaToRow)
   }
 
   const setGruposDisciplinas = (next: GrupoDisciplinas[]) => {
     const prev = gruposDisciplinas
     setGruposDisciplinasState(next)
-    if (user && !MODO_TESTE_LOCAL) void syncTable("grupos_disciplinas", user.id, prev, next, grupoDisciplinasToRow)
+    if (user) void syncTable("grupos_disciplinas", user.id, prev, next, grupoDisciplinasToRow)
   }
 
   const value = useMemo(
